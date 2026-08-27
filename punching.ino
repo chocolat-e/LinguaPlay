@@ -7,6 +7,15 @@
 #define SDA_PIN 21
 #define SCL_PIN 22
 
+#define BUTTON_PIN 27
+
+#define LED_G 26
+#define LED_R 25
+#define LED_B 33
+
+#define JOY_X 34
+#define JOY_Y 35
+
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
@@ -23,7 +32,12 @@ float gx, gy, gz;
 float accPower = 0;
 float punchPower = 0;
 
+int joyX = 0;
+int joyY = 0;
+int buttonState = HIGH;
+
 String action = "READY";
+String joyDir = "CENTER";
 
 unsigned long lastPunchTime = 0;
 unsigned long lastDisplayTime = 0;
@@ -32,8 +46,6 @@ unsigned long lastShownTime = 0;
 const int punchCooldown = 350;
 const int showDuration = 800;
 
-// Neu qua nhay, tang len 1.8 hoac 2.0
-// Neu kho nhan, giam xuong 1.2 hoac 1.0
 const float punchThreshold = 1.5;
 
 void writeMPU(byte reg, byte data) {
@@ -41,6 +53,12 @@ void writeMPU(byte reg, byte data) {
   Wire.write(reg);
   Wire.write(data);
   Wire.endTransmission();
+}
+
+void setLED(bool r, bool g, bool b) {
+  digitalWrite(LED_R, r ? HIGH : LOW);
+  digitalWrite(LED_G, g ? HIGH : LOW);
+  digitalWrite(LED_B, b ? HIGH : LOW);
 }
 
 void readMPU() {
@@ -60,7 +78,6 @@ void readMPU() {
   gyroY = Wire.read() << 8 | Wire.read();
   gyroZ = Wire.read() << 8 | Wire.read();
 
-  // Accel range +-8g => 4096 LSB/g
   ax = accX / 4096.0;
   ay = accY / 4096.0;
   az = accZ / 4096.0;
@@ -70,14 +87,30 @@ void readMPU() {
   gz = gyroZ / 131.0;
 }
 
-void updatePunch() {
+void readInputs() {
+  joyX = analogRead(JOY_X);
+  joyY = analogRead(JOY_Y);
+  buttonState = digitalRead(BUTTON_PIN);
+
+  if (joyX < 1200) {
+    joyDir = "LEFT";
+  } else if (joyX > 2800) {
+    joyDir = "RIGHT";
+  } else if (joyY < 1200) {
+    joyDir = "UP";
+  } else if (joyY > 2800) {
+    joyDir = "DOWN";
+  } else {
+    joyDir = "CENTER";
+  }
+}
+
+void updateAction() {
   unsigned long now = millis();
 
-  action = "NONE";
+  action = "READY";
 
   accPower = sqrt(ax * ax + ay * ay + az * az);
-
-  // Tru di 1g vi luc hut trai dat luc dung yen
   punchPower = abs(accPower - 1.0);
 
   if (punchPower > punchThreshold && now - lastPunchTime > punchCooldown) {
@@ -86,10 +119,25 @@ void updatePunch() {
     lastShownTime = now;
   }
 
+  if (buttonState == LOW) {
+    action = "BUTTON";
+    lastShownTime = now;
+  }
+
   if (now - lastShownTime < showDuration) {
-    action = "PUNCH";
+    if (buttonState == LOW) {
+      action = "BUTTON";
+    } else if (punchPower > punchThreshold) {
+      action = "PUNCH";
+    }
+  }
+
+  if (action == "PUNCH") {
+    setLED(false, true, false);
+  } else if (action == "BUTTON") {
+    setLED(false, false, true);
   } else {
-    action = "READY";
+    setLED(true, false, false);
   }
 }
 
@@ -100,24 +148,28 @@ void printSerial() {
   Serial.print(action);
   Serial.print("\",");
 
-  Serial.print("\"ax\":");
-  Serial.print(ax, 2);
+  Serial.print("\"joy\":\"");
+  Serial.print(joyDir);
+  Serial.print("\",");
+
+  Serial.print("\"button\":");
+  Serial.print(buttonState == LOW ? 1 : 0);
   Serial.print(",");
 
-  Serial.print("\"ay\":");
-  Serial.print(ay, 2);
+  Serial.print("\"x\":");
+  Serial.print(joyX);
   Serial.print(",");
 
-  Serial.print("\"az\":");
-  Serial.print(az, 2);
-  Serial.print(",");
-
-  Serial.print("\"accPower\":");
-  Serial.print(accPower, 2);
+  Serial.print("\"y\":");
+  Serial.print(joyY);
   Serial.print(",");
 
   Serial.print("\"punchPower\":");
   Serial.print(punchPower, 2);
+  Serial.print(",");
+
+  Serial.print("\"accPower\":");
+  Serial.print(accPower, 2);
 
   Serial.println("}");
 }
@@ -131,22 +183,29 @@ void updateOLED() {
 
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println("Punch Detector");
+  display.println("ESP32 Game Remote");
   display.drawLine(0, 11, 127, 11, SSD1306_WHITE);
 
   display.setTextSize(2);
-  display.setCursor(0, 20);
+  display.setCursor(0, 17);
   display.println(action);
 
   display.setTextSize(1);
-  display.setCursor(0, 48);
-  display.print("Power:");
-  display.print(punchPower, 2);
+  display.setCursor(0, 40);
+  display.print("Joy:");
+  display.print(joyDir);
 
-  display.setCursor(0, 58);
-  display.print("Acc:");
-  display.print(accPower, 2);
-  display.print("g");
+  display.setCursor(0, 50);
+  display.print("X:");
+  display.print(joyX);
+
+  display.setCursor(64, 50);
+  display.print("Y:");
+  display.print(joyY);
+
+  display.setCursor(0, 60);
+  display.print("P:");
+  display.print(punchPower, 2);
 
   display.display();
 }
@@ -154,19 +213,22 @@ void updateOLED() {
 void setup() {
   Serial.begin(115200);
 
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_G, OUTPUT);
+  pinMode(LED_B, OUTPUT);
+
+  setLED(true, false, false);
+
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(400000);
 
   writeMPU(0x6B, 0x00);
   delay(100);
 
-  // Low pass filter
   writeMPU(0x1A, 0x03);
-
-  // Gyro range +-250 deg/s
   writeMPU(0x1B, 0x00);
-
-  // Accel range +-8g
   writeMPU(0x1C, 0x10);
 
   delay(300);
@@ -180,17 +242,18 @@ void setup() {
   display.setTextColor(SSD1306_WHITE);
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println("MPU6050 Ready");
-  display.println("Punch mode");
+  display.println("Game Remote Ready");
+  display.println("Punch + Button + Joy");
   display.display();
 
-  Serial.println("MPU6050 Ready");
+  Serial.println("ESP32 Game Remote Ready");
   delay(500);
 }
 
 void loop() {
   readMPU();
-  updatePunch();
+  readInputs();
+  updateAction();
   printSerial();
   updateOLED();
 
