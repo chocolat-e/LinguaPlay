@@ -1,0 +1,63 @@
+:root {
+  /* One cool accent carries the interface. Colour beyond it means something:
+     green is correct, red is wrong, amber is a hot streak. */
+  --accent: #4cc9f0;
+  --accent-soft: #8fd7f0;
+  --accent-deep: #1b6d8f;
+  --correct: #5ee08a;
+  --wrong: #f2555a;
+  --warm: #f5a524;
+
+  --bg: #070b14;
+  --panel: rgba(9, 14, 26, 0.88);
+  --stroke: rgba(120, 160, 210, 0.2);
+  --text: #e6edf7;
+  --muted: #8b9bb4;
+
+  --display: 'Orbitron', 'Chakra Petch', 'Segoe UI', 'Inter', system-ui, sans-serif;
+  --body: 'Chakra Petch', 'Segoe UI', 'Inter', system-ui, sans-serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
