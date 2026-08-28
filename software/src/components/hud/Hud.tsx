@@ -1,11 +1,14 @@
 import { game } from '../../game/instance';
 import { useTimeRemaining } from '../../hooks/useGameState';
 import { formatTime } from '../../utils/math';
+import { CombatOverlay } from './CombatOverlay';
 import { ComboDisplay } from './ComboDisplay';
 import { Crosshair } from './Crosshair';
 import { DifficultyToast, FeedbackBurst } from './FeedbackBurst';
+import { MonsterHealth, PlayerHealth } from './HealthBars';
 import { QuestionDisplay } from './QuestionDisplay';
 import { AccuracyDisplay, ScoreDisplay } from './ScoreDisplay';
+import { StanceIndicator } from './StanceIndicator';
 
 function TimeDisplay() {
   const remaining = useTimeRemaining();
@@ -22,10 +25,11 @@ function TimeDisplay() {
 /**
  * The in-game overlay.
  *
- * Score and combo hold the left gutter, time and accuracy the right, and the
- * whole centre column is left clear for the question and the incoming blocks.
- * Only the pause button accepts pointer input — everything else is
- * `pointer-events: none` so it can never swallow a punch.
+ * Score, combo and health hold the left gutter, time and accuracy the right,
+ * the monster's health bar spans the top, and the whole centre column is left
+ * clear for the question and the incoming blocks. Only the pause button accepts
+ * pointer input — everything else is `pointer-events: none` so it can never
+ * swallow a punch.
  */
 export function Hud() {
   return (
@@ -35,6 +39,7 @@ export function Hud() {
           <div className="hud__left">
             <ScoreDisplay />
             <ComboDisplay />
+            <PlayerHealth />
           </div>
           <div />
           <div className="hud__right">
@@ -46,18 +51,22 @@ export function Hud() {
         <div />
 
         <div className="hud__bottom">
+          <StanceIndicator />
           <div className="hint">
             <span>
-              <kbd>Click</kbd> punch
+              <kbd>←</kbd>
+              <kbd>→</kbd> move
             </span>
             <span>
-              <kbd>A</kbd>
-              <kbd>S</kbd>
-              <kbd>D</kbd>
-              <kbd>F</kbd> answers
+              <kbd>1</kbd>
+              <kbd>2</kbd>
+              <kbd>3</kbd> jump to lane
             </span>
             <span>
-              <kbd>Space</kbd> punch aim
+              <kbd>Space</kbd> punch
+            </span>
+            <span>
+              <kbd>Shift</kbd> defend
             </span>
             <span>
               <kbd>Esc</kbd> pause
@@ -66,7 +75,9 @@ export function Hud() {
         </div>
       </div>
 
+      <MonsterHealth />
       <QuestionDisplay />
+      <CombatOverlay />
       <FeedbackBurst />
       <DifficultyToast />
       <Crosshair />

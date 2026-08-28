@@ -35,12 +35,18 @@ export function FeedbackBurst() {
         ? 'WRONG!'
         : 'MISS';
 
+    // A miss thrown from the wrong spot is a different mistake from letting the
+    // row escape, and the player can only fix it if we say which it was.
     const sub =
       good && payload.combo >= 3
         ? `COMBO ${payload.combo} · x${payload.multiplier}`
         : payload.outcome === 'WRONG'
           ? 'COMBO BREAK'
-          : null;
+          : payload.missReason === 'POSITION'
+            ? 'NOT IN AN ANSWER — MOVE FIRST'
+            : payload.outcome === 'MISS'
+              ? 'TOO SLOW'
+              : null;
 
     setBurst({ key: seq.current, headline, points: payload.points, sub, good });
   }, []);

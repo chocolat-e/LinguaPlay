@@ -6,6 +6,8 @@ import {
   COLORS,
   LANE_COLORS,
   LANE_LABELS,
+  LANE_X,
+  PLAYER_HAND,
   READ_Z,
   TARGET_D,
   TARGET_H,
@@ -69,9 +71,16 @@ export function AnswerTarget({ target }: Props) {
         // Brighten as the block closes on the strike plane.
         const nearness = clamp01(1 - Math.abs(target.z) / Math.abs(READ_Z));
         emissive = 0.85 + nearness * 1.15 + game.beatPulse * 0.2;
+        // The block you are standing in front of — the one a punch would
+        // actually answer — lights up. This is the feedback that makes the
+        // move-then-punch rule readable before you commit.
+        if (game.input.stance === target.lane) {
+          scale *= 1.07;
+          emissive += 1.6 + Math.sin(now * 8) * 0.35;
+        }
         if (hovered.current) {
-          scale *= 1.06;
-          emissive += 1.4;
+          scale *= 1.03;
+          emissive += 0.6;
         }
         break;
       }
@@ -129,14 +138,18 @@ export function AnswerTarget({ target }: Props) {
     }
   });
 
+  /**
+   * Clicking a block still throws a punch at it — but the game only counts it
+   * if the player is standing in this lane, exactly like every other input.
+   */
   const punch = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     if (target.state !== 'INCOMING') return;
     game.input.punch({
       laneIndex: target.lane,
       source: 'mouse',
-      hand: target.lane % 2 === 0 ? 'left' : 'right',
-      direction: { x: target.lane % 2 === 0 ? -0.35 : 0.35, y: 0, z: -1 },
+      hand: PLAYER_HAND,
+      direction: { x: Math.sign(LANE_X[target.lane]) * 0.35, y: 0, z: -1 },
       power: 1,
       confidence: 1,
     });

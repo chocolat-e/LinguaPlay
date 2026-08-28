@@ -7,6 +7,8 @@
   --correct: #5ee08a;
   --wrong: #f2555a;
   --warm: #f5a524;
+  /* The one extra hue, and it belongs to the monster. */
+  --monster: #a855f7;
 
   --bg: #070b14;
   --panel: rgba(9, 14, 26, 0.88);

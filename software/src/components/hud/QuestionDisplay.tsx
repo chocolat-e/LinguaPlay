@@ -1,5 +1,5 @@
 import { questionWindowSeconds } from '../../game/constants';
-import { useQuestion, useSettings, useStats } from '../../hooks/useGameState';
+import { useCombat, useQuestion, useSettings, useStats } from '../../hooks/useGameState';
 
 /**
  * The prompt itself lives in the DOM rather than the 3D scene: it has to stay
@@ -10,7 +10,12 @@ export function QuestionDisplay() {
   const question = useQuestion();
   const stats = useStats();
   const settings = useSettings();
-  if (!question) return null;
+  const combat = useCombat();
+
+  // The mini game is a combat move, not a question — clear the top of the
+  // screen so the letter above the player is actually visible.
+  const answering = combat.phase !== 'WORD_CONNECT' && combat.phase !== 'SPECIAL_ATTACK';
+  if (!question || !answering) return null;
 
   const window = questionWindowSeconds(question.difficulty, settings.speed);
 

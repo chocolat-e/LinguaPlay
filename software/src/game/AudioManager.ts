@@ -9,7 +9,14 @@ type Sfx =
   | 'countdown'
   | 'go'
   | 'gameover'
-  | 'ui';
+  | 'ui'
+  | 'monsterHit'
+  | 'charge'
+  | 'block'
+  | 'hurt'
+  | 'letter'
+  | 'special'
+  | 'specialCharge';
 
 /**
  * Every sound is synthesised with the Web Audio API — there are no audio files
@@ -41,6 +48,9 @@ export class AudioManager {
       if (this.ctx.state === 'suspended') void this.ctx.resume();
       return;
     }
+    // Outside a browser there is nothing to unlock; `play` already no-ops
+    // without a context, so the rest of the game runs silently.
+    if (typeof window === 'undefined') return;
     const Ctor =
       window.AudioContext ??
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -140,6 +150,62 @@ export class AudioManager {
       case 'ui':
         this.tone(t, 'square', 660, 880, 0.07, 0.16, bus);
         break;
+      case 'monsterHit': {
+        // Meaty low thud with a bright shatter on top. `param` is how hard the
+        // blow was, so a special-attack barrage climbs instead of repeating.
+        const force = param <= 0 ? 1 : Math.min(2, param);
+        this.tone(t, 'sine', 150 * force, 48, 0.26 * force, 0.42 * force, bus);
+        this.noiseHit(t, 0.22, 1500 * force, 0.34 * force);
+        this.tone(t + 0.02, 'triangle', 620 * force, 240, 0.18, 0.16 * force, bus);
+        break;
+      }
+      case 'charge': {
+        // Rising, uneasy wind-up that tells the player something is coming.
+        this.tone(t, 'sawtooth', 90, 320, 1.9, 0.14, bus, 900);
+        this.tone(t, 'square', 45, 160, 1.9, 0.1, bus, 420);
+        break;
+      }
+      case 'block':
+        // Metallic clank: short, bright, and clearly *not* damage.
+        this.noiseHit(t, 0.12, 3400, 0.4);
+        this.tone(t, 'square', 880, 660, 0.14, 0.2, bus);
+        this.tone(t + 0.01, 'triangle', 1320, 990, 0.1, 0.12, bus);
+        break;
+      case 'hurt':
+        this.tone(t, 'sawtooth', 240, 55, 0.5, 0.34, bus, 700);
+        this.tone(t, 'square', 110, 36, 0.5, 0.24, bus);
+        this.noiseHit(t, 0.36, 320, 0.36);
+        break;
+      case 'letter': {
+        // One rung of the word ladder — the pitch climbs with `param`, the
+        // index of the letter just connected.
+        const step = 660 * Math.pow(2, Math.min(param, 6) / 12);
+        this.tone(t, 'square', step, step * 1.5, 0.12, 0.16, bus);
+        this.noiseHit(t, 0.08, 4200, 0.12);
+        break;
+      }
+      case 'specialCharge': {
+        // The wind-up: a long riser that tells the player something enormous
+        // is about to land, and gets out of the way before it does.
+        this.tone(t, 'sawtooth', 60, 900, 0.85, 0.16, bus, 2600);
+        this.tone(t, 'square', 30, 220, 0.85, 0.12, bus, 700);
+        [0, 0.22, 0.42, 0.58, 0.7, 0.79].forEach((at, i) =>
+          this.tone(t + at, 'triangle', 330 + i * 110, 440 + i * 150, 0.1, 0.09, bus),
+        );
+        break;
+      }
+      case 'special': {
+        // The finisher: a hard sweep, a wide chord, and a sub that keeps
+        // ringing under the slow motion.
+        this.tone(t, 'sawtooth', 240, 1800, 0.5, 0.26, bus, 6000);
+        [261.63, 392, 523.25, 784, 1046.5].forEach((freq, i) =>
+          this.tone(t + i * 0.04, 'triangle', freq, freq * 1.5, 0.9, 0.22, bus),
+        );
+        this.noiseHit(t, 0.7, 3000, 0.5);
+        this.tone(t + 0.02, 'sine', 150, 32, 1.3, 0.62, bus);
+        this.tone(t + 0.05, 'square', 70, 24, 0.9, 0.24, bus, 300);
+        break;
+      }
     }
   }
 

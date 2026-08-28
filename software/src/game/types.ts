@@ -13,7 +13,10 @@ export type Category =
 export interface Question {
   id: number;
   question: string;
-  /** Always 4 entries — one per lane (A/B/C/D). */
+  /**
+   * Four entries as authored. `QuestionManager` serves each item trimmed to
+   * three — one per lane (L/C/R) — so gameplay only ever sees three.
+   */
   answers: string[];
   /** Index into `answers`. */
   correctAnswer: number;
@@ -43,6 +46,84 @@ export type GameState =
   | 'GAME_OVER'
   | 'RESULTS';
 
+/** Which of the three standing positions the player occupies. */
+export type Stance = 0 | 1 | 2;
+
+/** Facing used by the word-connect mini game, where slots sit on both axes. */
+export type MoveDirection = 'UP' | 'RIGHT' | 'DOWN' | 'LEFT';
+
+/**
+ * Which part of the player a movement signal is steering.
+ *
+ * `STANCE` is the answer phase: the feet walk between LEFT · CENTER · RIGHT.
+ * `REACH` is Word Connect: the feet are planted in the centre and the same
+ * signal aims the hand at one of the four letter slots instead.
+ */
+export type MotionMode = 'STANCE' | 'REACH';
+
+/**
+ * Where the battle is *inside* a PLAYING round.
+ *
+ * `GameState` keeps owning the coarse screen routing exactly as before; this is
+ * the finer combat machine running underneath it. Deliberately a second field
+ * rather than more `GameState` members, so there is still one state system and
+ * every screen, input gate, and scene filter keeps working unchanged.
+ */
+export type CombatPhase =
+  | 'ANSWERING'          // a question is live; move, then punch
+  | 'RESOLVING'          // answered; brief beat before the next question
+  | 'MONSTER_CHARGING'   // wind-up; the defence window is inside this
+  | 'MONSTER_STRIKING'   // the blow has landed or been blocked
+  | 'WORD_CONNECT'       // the earned mini game
+  | 'SPECIAL_ATTACK';    // the payoff from the mini game
+
+export type MonsterPhase = 'IDLE' | 'HURT' | 'CHARGING' | 'STRIKING' | 'DEFEATED';
+
+/** Why the round ended. */
+export type RoundOutcome = 'TIME' | 'QUESTIONS' | 'VICTORY' | 'DEFEAT';
+
+export interface CombatSnapshot {
+  level: number;
+  /** True on the diagnostic level, where the monster may not counter-attack. */
+  diagnostic: boolean;
+  phase: CombatPhase;
+  monsterPhase: MonsterPhase;
+  monsterHp: number;
+  monsterMaxHp: number;
+  playerHp: number;
+  playerMaxHp: number;
+  correctStreak: number;
+  streakTarget: number;
+  /** Seconds until the blow lands, or null when the monster is not charging. */
+  chargeRemaining: number | null;
+  /** True while the player's guard is actually up. */
+  guarding: boolean;
+  stance: Stance | null;
+  roundOutcome: RoundOutcome | null;
+}
+
+export interface WordConnectSlot {
+  /** 0..3 → UP · RIGHT · DOWN · LEFT. */
+  index: number;
+  letter: string;
+  direction: MoveDirection;
+  /** Position in the word this slot was connected for, or null if untouched. */
+  usedAt: number | null;
+}
+
+export interface WordConnectSnapshot {
+  active: boolean;
+  word: string;
+  /** How many letters of `word` are connected so far. */
+  progress: number;
+  slots: WordConnectSlot[];
+  wordIndex: number;
+  totalWords: number;
+  wordsCompleted: number;
+  timeRemaining: number;
+  status: 'PLAYING' | 'COMPLETE' | 'FAILED' | 'DONE';
+}
+
 /** How cleanly the punch landed relative to the strike plane. */
 export type HitQuality = 'PERFECT' | 'GREAT' | 'GOOD' | 'EARLY';
 
@@ -58,7 +139,7 @@ export type TargetState =
 
 export interface TargetRuntime {
   id: number;
-  /** 0..3 → A/B/C/D. Lane index doubles as the answer index. */
+  /** 0..2 → LEFT/CENTER/RIGHT. Lane index doubles as the answer index. */
   lane: number;
   label: string;
   isCorrect: boolean;
@@ -97,6 +178,21 @@ export interface AnswerRecord {
   misconception: string | null;
   /** Unix time enables forgetting estimates across browser sessions. */
   recordedAt: number;
+}
+
+/**
+ * One question the player did not get right, kept so the results screen can
+ * show the right answer and why. Display copy only — the learner model reads
+ * `AnswerRecord`, never this.
+ */
+export interface ReviewItem {
+  questionId: number;
+  question: string;
+  /** What the player punched, or null when no punch landed in time. */
+  yourAnswer: string | null;
+  correctAnswer: string;
+  /** Plain-language reason the correct answer is the right one. */
+  explanation: string;
 }
 
 export interface SessionStats {

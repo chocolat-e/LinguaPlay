@@ -18,6 +18,18 @@ export class ScoreManager {
     return points;
   }
 
+  /**
+   * Points that are not tied to answering a question — the special attack.
+   * Deliberately does not touch the correct/wrong counts, so accuracy and the
+   * learner model keep measuring English only.
+   * @returns points awarded.
+   */
+  bonus(points: number): number {
+    const awarded = Math.max(0, Math.round(points));
+    this.score += awarded;
+    return awarded;
+  }
+
   /** @returns points lost (negative). */
   penalise(): number {
     const lost = Math.min(WRONG_PENALTY, this.score);

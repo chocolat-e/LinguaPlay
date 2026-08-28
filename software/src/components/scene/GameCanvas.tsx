@@ -1,16 +1,24 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
-import { CAMERA_FOV, CAMERA_POS, COLORS } from '../../game/constants';
+import {
+  CAMERA_FOV,
+  CAMERA_POS,
+  COLORS,
+  PLAYER_LANE_WORLD_X,
+} from '../../game/constants';
 import { game } from '../../game/instance';
 import type { TargetRuntime } from '../../game/types';
 import { useGameEvent } from '../../hooks/useGameEvent';
 import { AnswerTarget } from './AnswerTarget';
 import { ImpactFX } from './ImpactFX';
+import { Monster } from './Monster';
 import { NeonTunnel } from './NeonTunnel';
 import { PlayerGlove } from './PlayerGlove';
+import { SpecialFX } from './SpecialFX';
+import { WordLetters } from './WordLetters';
 
 /**
  * Single driver for the whole simulation.
@@ -23,21 +31,49 @@ function GameLoop() {
   return null;
 }
 
-/** Applies decaying positional + roll shake on top of the camera's rest pose. */
-function CameraShake() {
+/**
+ * Camera rig: the player's lateral position, plus decaying positional + roll
+ * shake, on top of the camera's rest pose.
+ *
+ * Moving the viewpoint is what makes standing LEFT / CENTER / RIGHT legible —
+ * the world slides as you walk, so the answer you are in front of is obvious
+ * before you ever throw the punch.
+ */
+function CameraRig() {
   const camera = useThree((state) => state.camera);
+  /** Last FOV written, so the projection matrix is only rebuilt when it moves. */
+  const fov = useRef(CAMERA_FOV);
 
   useFrame(() => {
     const amount = game.settings.screenShake ? game.shake : 0;
     const t = game.time;
     const sway = Math.sin(t * 0.35) * 0.06;
+    const lateral = game.input.motion.x * PLAYER_LANE_WORLD_X;
+    const charge = game.specialCharge;
+    const blast = game.specialBlast;
 
     camera.position.set(
-      CAMERA_POS[0] + sway + (Math.random() - 0.5) * amount * 0.55,
+      CAMERA_POS[0] + lateral + sway + (Math.random() - 0.5) * amount * 0.55,
       CAMERA_POS[1] + Math.sin(t * 0.5) * 0.04 + (Math.random() - 0.5) * amount * 0.5,
-      CAMERA_POS[2] + (Math.random() - 0.5) * amount * 0.3,
+      // Drift back as the blow charges, then lunge in with it.
+      CAMERA_POS[2] + charge * 1.6 - blast * 2.2 + (Math.random() - 0.5) * amount * 0.3,
     );
-    camera.rotation.z = (Math.random() - 0.5) * amount * 0.06 + Math.sin(t * 0.3) * 0.005;
+    // A slight lean into the direction of travel, and a hard roll on impact.
+    camera.rotation.z =
+      (Math.random() - 0.5) * amount * 0.06 +
+      Math.sin(t * 0.3) * 0.005 -
+      game.input.motion.x * 0.02 -
+      blast * 0.05;
+
+    // A wider lens on impact: the classic punch-in that makes a hit feel big.
+    const next = (camera as THREE.PerspectiveCamera).isPerspectiveCamera
+      ? CAMERA_FOV - charge * 3 + blast * 7
+      : CAMERA_FOV;
+    if (Math.abs(next - fov.current) > 0.01) {
+      fov.current = next;
+      (camera as THREE.PerspectiveCamera).fov = next;
+      camera.updateProjectionMatrix();
+    }
   });
 
   return null;
@@ -100,7 +136,7 @@ export function GameCanvas() {
       </PerspectiveCamera>
 
       <GameLoop />
-      <CameraShake />
+      <CameraRig />
 
       <ambientLight intensity={0.6} color="#93b4d8" />
       <hemisphereLight args={['#5b7fb5', '#0d1424', 0.5]} />
@@ -109,7 +145,10 @@ export function GameCanvas() {
       <pointLight position={[9, 5, 5]} intensity={55} distance={44} color={COLORS.accentSoft} />
 
       <NeonTunnel />
+      <Monster />
       <TargetField />
+      <WordLetters />
+      <SpecialFX />
       <ImpactFX />
 
       <EffectComposer>

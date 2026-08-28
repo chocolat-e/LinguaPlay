@@ -1,5 +1,6 @@
 import { game } from '../../game/instance';
-import { useCoach, useStats } from '../../hooks/useGameState';
+import { useCoach, useCombat, useReview, useStats } from '../../hooks/useGameState';
+import type { ReviewItem, RoundOutcome } from '../../game/types';
 import { formatNumber } from '../../utils/math';
 
 interface Grade {
@@ -8,8 +9,20 @@ interface Grade {
   line: string;
 }
 
+/** How the fight itself ended, separately from how the English went. */
+function battleTitle(outcome: RoundOutcome | null): { title: string; tone: string } {
+  switch (outcome) {
+    case 'VICTORY':
+      return { title: 'Monster defeated', tone: 'var(--correct)' };
+    case 'DEFEAT':
+      return { title: 'You were knocked out', tone: 'var(--wrong)' };
+    default:
+      return { title: 'Round complete', tone: 'var(--accent)' };
+  }
+}
+
 function gradeFor(accuracy: number, answered: number): Grade {
-  if (answered === 0) return { letter: '—', color: 'var(--muted)', line: 'No answers landed.' };
+  if (answered === 0) return { letter: '—', color: 'var(--muted)', line: 'You did not answer any questions.' };
   if (accuracy >= 0.95) return { letter: 'S', color: 'var(--warm)', line: 'Flawless footwork.' };
   if (accuracy >= 0.85) return { letter: 'A', color: 'var(--correct)', line: 'Sharp and fast.' };
   if (accuracy >= 0.7) return { letter: 'B', color: 'var(--accent)', line: 'Solid round.' };
@@ -20,14 +33,19 @@ function gradeFor(accuracy: number, answered: number): Grade {
 export function ResultsScreen() {
   const stats = useStats();
   const coach = useCoach();
+  const combat = useCombat();
+  const review = useReview();
   const grade = gradeFor(stats.accuracy, stats.answered);
+  const battle = battleTitle(combat.roundOutcome);
   const adaptivePackage = coach.package;
   const isPlanning = coach.status === 'loading';
 
   return (
     <div className="layer layer--modal">
       <div className="panel panel--results">
-        <h2 className="panel__title">Round complete</h2>
+        <h2 className="panel__title" style={{ color: battle.tone }}>
+          {battle.title}
+        </h2>
 
         <div className="results__head">
           <div>
@@ -50,29 +68,46 @@ export function ResultsScreen() {
           <Cell label="Best combo" value={`x${stats.bestCombo}`} color="var(--warm)" />
           <Cell label="Correct" value={String(stats.correct)} color="var(--correct)" />
           <Cell label="Wrong" value={String(stats.wrong)} color="var(--wrong)" />
-          <Cell label="Missed" value={String(stats.missed)} color="var(--warm)" />
+          <Cell label="Ran out of time" value={String(stats.missed)} color="var(--warm)" />
           <Cell
-            label="Avg reaction"
+            label="Average speed"
             value={stats.answered ? `${stats.averageReaction.toFixed(2)}s` : '—'}
             color="var(--accent-soft)"
           />
+          <Cell
+            label="Monster health left"
+            value={`${Math.max(0, combat.monsterHp)} / ${combat.monsterMaxHp}`}
+            color="var(--monster)"
+          />
+          <Cell
+            label="Your health left"
+            value={
+              combat.diagnostic
+                ? 'No damage taken'
+                : `${Math.max(0, combat.playerHp)} / ${combat.playerMaxHp}`
+            }
+            color={combat.playerHp > 0 ? 'var(--correct)' : 'var(--wrong)'}
+          />
+          <Cell label="Level" value={String(combat.level)} color="var(--accent)" />
         </div>
+
+        <ReviewSection items={review} answered={stats.answered} />
 
         <section className="coach" aria-live="polite" aria-busy={isPlanning}>
           <div className="coach__heading">
             <div>
-              <p className="eyebrow">PunchKT coach</p>
-              <h3>{isPlanning ? 'Planning your next level…' : adaptivePackage?.feedback.headline ?? 'Report ready'}</h3>
+              <p className="eyebrow">Your coach</p>
+              <h3>{isPlanning ? 'Planning your next level…' : adaptivePackage?.feedback.headline ?? 'Your report is ready'}</h3>
             </div>
             <span className={`coach__badge coach__badge--${adaptivePackage?.source ?? 'loading'}`}>
-              {isPlanning ? 'Analysing' : adaptivePackage?.source === 'llm' ? 'AI planned' : 'Local plan'}
+              {isPlanning ? 'Reading your round' : adaptivePackage?.source === 'llm' ? 'Made for you' : 'Practice set'}
             </span>
           </div>
 
           {isPlanning ? (
             <p className="coach__loading">
-              Separating English choices from punch timing, checking misconceptions and forgetting,
-              then generating 30 validated questions.
+              Looking at which questions you found hard, then building the next set of
+              questions around them.
             </p>
           ) : adaptivePackage ? (
             <>
@@ -82,7 +117,7 @@ export function ResultsScreen() {
               </div>
               <p className="coach__advice">{adaptivePackage.feedback.advice}</p>
               <div className="coach__curriculum">
-                <span>Next: {adaptivePackage.curriculum.title}</span>
+                <span>Next up: {adaptivePackage.curriculum.title}</span>
                 {adaptivePackage.curriculum.targetConcepts.slice(0, 4).map((target) => (
                   <span className="coach__chip" key={target.component} title={target.reason}>
                     {target.component.replaceAll('-', ' ')}
@@ -92,7 +127,7 @@ export function ResultsScreen() {
               {coach.message && <p className="coach__message">{coach.message}</p>}
             </>
           ) : (
-            <p className="coach__loading">The round is recorded. The standard question pool will continue.</p>
+            <p className="coach__loading">Your round is saved. The next level is ready when you are.</p>
           )}
         </section>
 
@@ -124,6 +159,48 @@ export function ResultsScreen() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * The questions the player did not get right, each with the right answer and a
+ * short reason. This is the part players actually learn from, so it sits above
+ * the coach summary rather than below it.
+ */
+function ReviewSection({ items, answered }: { items: ReviewItem[]; answered: number }) {
+  if (answered === 0) return null;
+
+  if (items.length === 0) {
+    return (
+      <section className="review review--clean">
+        <p className="eyebrow">Answers to go over</p>
+        <p className="review__clean">
+          Nothing to correct — you got every question right this round.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="review">
+      <p className="eyebrow">
+        Answers to go over ({items.length})
+      </p>
+      <ul className="review__list">
+        {items.map((item, index) => (
+          <li className="review__item" key={`${item.questionId}-${index}`}>
+            <p className="review__question">{item.question}</p>
+            <p className="review__answers">
+              <span className="review__yours">
+                You said: {item.yourAnswer ?? 'no answer in time'}
+              </span>
+              <span className="review__correct">Correct: {item.correctAnswer}</span>
+            </p>
+            <p className="review__why">{item.explanation}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

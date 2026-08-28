@@ -12,17 +12,18 @@ const SIDE = PLAYER_HAND === 'right' ? 1 : -1;
 const REST: [number, number, number] = [1.32 * SIDE, -1.3, -2.9];
 
 /**
- * Where the fist swings for each lane, in camera-local units. Lanes are
- * A/B top row, C/D bottom row — so the glove visibly reaches up-left,
- * up-right, down-left or down-right, which doubles as feedback for *which*
- * answer the player just committed to.
+ * Where the fist swings for each lane, in camera-local units. The camera has
+ * already slid to the player's position, so these are small corrections rather
+ * than full reaches — the glove nudges toward the block it is answering.
  */
 const LANE_AIM: Array<{ x: number; y: number }> = [
-  { x: -1.55, y: 0.72 },
-  { x: -0.15, y: 0.72 },
-  { x: -1.55, y: 0.16 },
-  { x: -0.15, y: 0.16 },
+  { x: -1.1, y: 0.5 },
+  { x: -0.7, y: 0.55 },
+  { x: -0.3, y: 0.5 },
 ];
+
+/** Camera-local guard pose: fist up in front of the face. */
+const GUARD: { x: number; y: number; z: number } = { x: -0.75, y: 0.95, z: -0.55 };
 
 /**
  * The player's single fist, parented to the camera so it inherits screen shake.
@@ -34,10 +35,21 @@ export function PlayerGlove() {
   const glove = useRef<THREE.Group>(null);
   /** 0 → punch just started, 1 → fully recovered. */
   const lunge = useRef(1);
+  /** 0 → hands down, 1 → guard fully raised. */
+  const guard = useRef(0);
   const aim = useRef({ x: 0, y: 0 });
 
   const onPunch = useCallback((payload: { lane: number | null }) => {
-    const target = payload.lane === null ? { x: -0.85, y: 0.44 } : LANE_AIM[payload.lane];
+    // A punch with no lane — a whiff, or a word-connect letter — reaches
+    // wherever the player is aiming instead.
+    const motion = game.input.motion;
+    const reaching = motion.mode === 'REACH';
+    const ax = reaching ? motion.handX : motion.x;
+    const ay = reaching ? motion.handY : 0;
+    const target =
+      payload.lane === null
+        ? { x: -0.85 + ax * 0.5, y: 0.44 + ay * 0.5 }
+        : LANE_AIM[payload.lane] ?? { x: -0.7, y: 0.5 };
     aim.current.x = target.x * SIDE;
     aim.current.y = target.y;
     lunge.current = 0;
@@ -57,20 +69,36 @@ export function PlayerGlove() {
     const extend = k < 0.28 ? easeOutCubic(k / 0.28) : 1 - (k - 0.28) / 0.72;
     const push = Math.sin(clamp01(extend) * Math.PI * 0.5);
 
+    // The guard is a pose, not an animation: while it is up the fist sits
+    // high in front of the face, which is the player's read that they are
+    // actually protected right now.
+    const guardTarget = game.input.isGuarding() ? 1 : 0;
+    guard.current += (guardTarget - guard.current) * Math.min(1, dt * 18);
+    const g = guard.current;
+
+    // During Word Connect the arm *is* the aim, so the fist tracks the reach
+    // continuously — the player can see which letter they are pointing at
+    // before they commit to the punch.
+    const motion = game.input.motion;
+    const reaching = motion.mode === 'REACH';
+    const reachX = reaching ? motion.handX * 0.85 : 0;
+    const reachY = reaching ? motion.handY * 0.7 : 0;
+
     const [bx, by, bz] = REST;
     const bob = Math.sin(t * 2.1) * 0.035 + game.beatPulse * 0.05;
+    const shiver = g * Math.sin(t * 26) * 0.012;
 
     node.position.set(
-      bx + aim.current.x * push,
-      by + bob + aim.current.y * push,
-      bz - push * 1.5,
+      bx + reachX + aim.current.x * push + (GUARD.x - bx) * g,
+      by + bob + reachY + aim.current.y * push + (GUARD.y - by) * g + shiver,
+      bz - push * 1.5 + (GUARD.z - bz) * g,
     );
     node.rotation.set(
-      -0.35 - push * 0.45,
-      -0.4 * SIDE + aim.current.x * push * 0.22,
-      -0.2 * SIDE,
+      -0.35 - push * 0.45 + g * 0.55 - reachY * 0.3,
+      -0.4 * SIDE + aim.current.x * push * 0.22 + reachX * 0.25,
+      -0.2 * SIDE - g * 0.5 * SIDE,
     );
-    node.scale.setScalar(1 + push * 0.08);
+    node.scale.setScalar(1 + push * 0.08 + g * 0.06);
 
     const trail = node.children[1] as THREE.Mesh | undefined;
     if (trail) {

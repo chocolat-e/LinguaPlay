@@ -21,7 +21,8 @@ export interface CoachResult {
 
 export async function requestAdaptivePlan(report: LearnerReport): Promise<CoachResult> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 105_000);
+  // Plain timers, not `window.*`, so the adaptive layer also runs under test.
+  const timeout = setTimeout(() => controller.abort(), 105_000);
 
   try {
     const response = await fetch('/api/punchkt/plan', {
@@ -52,12 +53,14 @@ export async function requestAdaptivePlan(report: LearnerReport): Promise<CoachR
       message: null,
     };
   } catch (error) {
-    const reason = error instanceof Error ? error.message : 'The AI coach was unavailable.';
+    // The real reason is for whoever is running the game, not for the player —
+    // "invalid plan shape" means nothing to someone learning English.
+    console.warn('[coach] falling back to the built-in question set:', error);
     return {
       package: createLocalPlan(report),
-      message: `${reason} A deterministic PunchKT plan was prepared instead.`,
+      message: 'Your coach could not be reached, so this round uses the built-in practice questions.',
     };
   } finally {
-    window.clearTimeout(timeout);
+    clearTimeout(timeout);
   }
 }

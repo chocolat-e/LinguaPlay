@@ -50,6 +50,18 @@ export class PunchKTLearner {
     this.profile = this.load();
   }
 
+  /**
+   * The level the player is about to play, counting from 1.
+   *
+   * Level 1 is the diagnostic round the monster never counter-attacks in, so
+   * this is what decides whether the battle can hit back. It comes from the
+   * persisted session count, meaning a returning player resumes at their real
+   * level rather than replaying the diagnostic.
+   */
+  get level(): number {
+    return this.profile.sessionsCompleted + 1;
+  }
+
   record(record: AnswerRecord): void {
     const component = this.profile.concepts[record.knowledgeComponent] ?? {
       category: record.category,
@@ -201,6 +213,10 @@ export class PunchKTLearner {
   private load(): StoredProfile {
     try {
       if (typeof localStorage === 'undefined') return emptyProfile();
+      if (shouldResetProgress()) {
+        localStorage.removeItem(STORAGE_KEY);
+        return emptyProfile();
+      }
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return emptyProfile();
       const parsed = JSON.parse(raw) as Partial<StoredProfile>;
@@ -227,13 +243,31 @@ export class PunchKTLearner {
   }
 }
 
+/** Testing escape hatch: load the page with ?resetProgress=1 to wipe persisted level/mastery. */
+function shouldResetProgress(): boolean {
+  if (typeof location === 'undefined') return false;
+  try {
+    return new URLSearchParams(location.search).get('resetProgress') === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The advice line the player reads under the coach summary, so it talks about
+ * punching and reading — never about the model behind it.
+ */
 function motorInterpretation(total: number, landed: number, early: number): string {
-  if (total === 0) return 'No punch evidence was collected.';
+  if (total === 0) return 'Have a go at the next round and your coach will have something to work with.';
   const missRate = 1 - landed / total;
   const earlyRate = landed === 0 ? 0 : early / landed;
-  if (missRate >= 0.3) return 'Several blocks escaped; do not infer language weakness from those misses.';
-  if (earlyRate >= 0.35) return 'Answer selection was often early; keep language and timing feedback separate.';
-  return 'Punch control was stable enough for answer choices to be useful language evidence.';
+  if (missRate >= 0.3) {
+    return 'A lot of questions ran out of time. Move to the answer first, then punch — those are counted as timing, not as English mistakes.';
+  }
+  if (earlyRate >= 0.35) {
+    return 'You are punching very early. Give yourself an extra moment to read all three answers before you swing.';
+  }
+  return 'Your punching is steady, so your score here is a fair picture of your English.';
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));

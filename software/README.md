@@ -1,14 +1,45 @@
 # PUNCH ENGLISH
 
-A Beat Saber–style rhythm game for learning English, in the browser. A question
-appears, four answer blocks rush in and hold while you read them, then close on
-you — punch the right one before it gets past.
+A rhythm-boxing game for learning English, in the browser. You are in a fight
+with a monster, and English is your weapon. A question appears, three answer
+blocks rush in and hold while you read them — **walk to the answer you want,
+then punch it**. Get it right and the monster takes the hit. Get it wrong and it
+gets a turn.
 
 It is a **one-handed** game: a single fist throws every punch, reaching toward
 whichever answer you commit to.
 
 Not VR — mouse and keyboard — but the input layer is built so a webcam tracker
 or an ESP32 motion controller can be dropped in without touching gameplay code.
+
+## The fight
+
+```
+move to an answer → punch → correct   → the monster loses HP
+                          → wrong/miss → the monster winds up an attack
+                                       → block it, or lose HP
+```
+
+- **Answering is two steps.** A punch only counts for the answer you are
+  actually standing in front of. Punch from between lanes, or at a block you
+  have not walked to, and it is a MISS — the game never guesses the nearest
+  answer for you.
+- **Level 1 is a diagnostic round.** The monster measures your English and never
+  hits back. From level 2 the counter-attacks start.
+- **Blocking is timed.** `Shift` raises your guard for less than a second, so
+  holding it from the start of a wind-up leaves you open when the blow lands.
+- **Five correct in a row** earns a Word Connect special attack: a short word is
+  scattered around you, and connecting its letters in order builds a heavy hit.
+  It is spent as a sequence rather than a single punch — a wind-up that drags
+  the world in toward the monster, a barrage that runs one blow longer for
+  every word connected, and a finisher that lands in slow motion.
+- **Word Connect is hand only, and needs no punch.** Your feet stay planted in
+  the centre for the whole mini game: reach up, down, left, or right and the
+  letter connects the moment you get there. Walking and punching answer
+  questions; reaching alone connects letters.
+
+Levels come from the persisted learner profile, so a returning player resumes at
+their real level rather than replaying the diagnostic.
 
 ## Run it
 
@@ -71,9 +102,12 @@ estimated retention has decayed between visits to be scheduled for review.
 
 | Input | Action |
 | --- | --- |
-| Mouse click | Punch the block under the cursor. Clicking empty space whiffs. |
-| `A` `S` `D` `F` | Punch lane A / B / C / D directly |
-| `Space` | Punch whatever you are currently aiming at |
+| `←` `→` (or `A` `D`) | Walk between LEFT · CENTER · RIGHT |
+| `← ↑ → ↓` (or `WASD`) | Reach at a letter to connect it, during Word Connect |
+| `1` `2` `3` | Step straight to a lane |
+| `Space` | Punch whatever you are standing in front of, or reaching at |
+| `Shift` | Raise your guard |
+| Mouse click | Punch a block — still only counts from its lane |
 | `Esc` | Pause / resume |
 
 ## How it scores
@@ -91,7 +125,12 @@ multiplied by the combo tier:
 
 A wrong answer costs 50 points and breaks the combo, and the correct block
 flashes green so you learn what you missed. Letting the row fly past also
-breaks the combo. A round is 20 questions or 3:00, whichever comes first.
+breaks the combo. A round ends at 20 questions, 3:30, the monster's last hit
+point, or yours — whichever comes first.
+
+Damage is separate from score: a correct answer deals a base hit plus a bonus
+for punch timing and one that grows with the combo. Every number lives in
+`src/game/constants.ts`.
 
 ### Time to think
 
@@ -115,35 +154,57 @@ frame.**
 
 ```
 src/
-├── game/                     pure TypeScript, no React, no Three.js
-│   ├── GameManager.ts        authoritative state + tick(dt) + event bus
-│   ├── QuestionManager.ts    serves questions, shuffles answer order
-│   ├── ScoreManager.ts       score and session statistics
-│   ├── ComboManager.ts       streak and multiplier tiers
-│   ├── DifficultyManager.ts  adaptive difficulty + learner signals
-│   ├── AudioManager.ts       Web Audio synthesis (music + SFX, no assets)
-│   ├── events.ts             typed pub/sub
-│   ├── constants.ts          every tunable in one file
+├── game/                       pure TypeScript, no React, no Three.js
+│   ├── GameManager.ts          authoritative state + tick(dt) + event bus
+│   ├── MonsterManager.ts       monster HP, wind-up timer, phase
+│   ├── WordConnectManager.ts   the special-attack mini game
+│   ├── wordBank.ts             picks puzzle words out of the question pool
+│   ├── QuestionManager.ts      serves questions, trims 4 options to 3 lanes
+│   ├── ScoreManager.ts         score and session statistics
+│   ├── ComboManager.ts         streak and multiplier tiers
+│   ├── DifficultyManager.ts    adaptive difficulty + learner signals
+│   ├── AudioManager.ts         Web Audio synthesis (music + SFX, no assets)
+│   ├── events.ts               typed pub/sub
+│   ├── constants.ts            every tunable in one file
 │   └── input/
-│       ├── PunchEvent.ts     the one contract every input device speaks
-│       ├── InputManager.ts   fans InputSources into one punch stream
-│       └── HARDWARE.md       how to add an ESP32 / MediaPipe source
+│       ├── PunchEvent.ts       the one contract every input device speaks
+│       ├── PlayerMotion.ts     stance, hand reach, and guard timing
+│       ├── InputManager.ts     fans InputSources into one punch stream
+│       └── HARDWARE.md         how to add an ESP32 / MediaPipe source
 │
 ├── components/
-│   ├── scene/                React Three Fiber — reads game state in useFrame
-│   ├── hud/                  DOM overlay, repaints only on discrete events
-│   └── screens/              menu, how-to-play, settings, countdown, results
+│   ├── scene/                  React Three Fiber — reads game state in useFrame
+│   ├── hud/                    DOM overlay, repaints only on discrete events
+│   └── screens/                menu, how-to-play, settings, countdown, results
 │
-├── store/gameStore.ts        zustand mirror of the simulation, for the HUD
-├── hooks/                    event subscription + narrow selectors
-├── data/questions.ts         26 questions across 3 difficulties
-└── utils/                    math helpers, answer-card canvas textures
+├── store/gameStore.ts          zustand mirror of the simulation, for the HUD
+├── hooks/                      event subscription + narrow selectors
+├── data/questions.ts           30 questions across 3 difficulties
+└── utils/                      math helpers, canvas textures
 ```
+
+### Two state machines, on purpose — but only one system
+
+`GameState` still owns the coarse screen routing (menu, countdown, playing,
+results). The battle runs as a `CombatPhase` *underneath* `PLAYING`:
+
+```
+ANSWERING → RESOLVING → MONSTER_CHARGING → MONSTER_STRIKING
+     ↓
+WORD_CONNECT → SPECIAL_ATTACK
+```
+
+Keeping the fight in a second field rather than adding members to `GameState`
+means every existing screen, input gate, and scene filter kept working as
+written, and there is still exactly one publisher feeding the HUD.
 
 ### Why it stays at 60 FPS
 
 - One `useFrame` at priority `-1` drives `GameManager.tick(dt)`; everything else
   reads the state it just produced.
+- The player's position, the hand's reach, and the indicator that shows them
+  are written straight to transforms — moving never re-renders React. Combat wind-ups publish at 12 Hz,
+  only while a countdown is actually on screen.
 - Block motion is written straight to `Object3D` transforms from a mutable
   `TargetRuntime`. React re-renders the scene only when a new question spawns —
   four components, once every few seconds.

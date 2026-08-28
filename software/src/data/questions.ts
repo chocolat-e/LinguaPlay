@@ -4,6 +4,10 @@
  * In a later version this can be swapped for a fetch from a backend or an
  * LLM-generated set without touching gameplay code — `QuestionManager` only
  * depends on the `Question` shape, never on where the questions came from.
+ *
+ * Every item carries an `explanation`: the results screen shows it back to the
+ * player for anything they got wrong, so it has to read like a teacher talking,
+ * not like a grammar reference.
  */
 import type { Question } from '../game/types';
 
@@ -16,6 +20,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'easy',
     category: 'synonym',
+    explanation: '“Joyful” means full of joy, so it is another way of saying happy. “Sad” and “angry” are the opposite feeling.',
   },
   {
     id: 2,
@@ -24,6 +29,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'easy',
     category: 'antonym',
+    explanation: '“Cold” is the true opposite of hot. “Warm” is only a little less hot, not the opposite.',
   },
   {
     id: 3,
@@ -32,6 +38,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'easy',
     category: 'grammar',
+    explanation: 'After she, he, or it we add -s to the verb: she goes. We say “I go” but “she goes”.',
   },
   {
     id: 4,
@@ -40,14 +47,16 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'easy',
     category: 'vocabulary',
+    explanation: '“Purple” is a colour. A chair is a thing, listen is an action, and quickly describes how you do something.',
   },
   {
     id: 5,
-    question: "How do you greet someone in the morning?",
+    question: 'How do you greet someone in the morning?',
     answers: ['Good night', 'Good morning', 'Goodbye', 'Good luck'],
     correctAnswer: 1,
     difficulty: 'easy',
     category: 'everyday',
+    explanation: 'We say “Good morning” when we meet someone early in the day. “Good night” is for leaving or going to bed.',
   },
   {
     id: 6,
@@ -56,6 +65,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'easy',
     category: 'grammar',
+    explanation: '“I” always takes am. Use is with he/she/it, and are with you/we/they.',
   },
   {
     id: 7,
@@ -64,6 +74,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 2,
     difficulty: 'easy',
     category: 'antonym',
+    explanation: '“Small” is the opposite of big. Careful: “huge” means very big, so it is a synonym, not an opposite.',
   },
   {
     id: 8,
@@ -72,6 +83,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'easy',
     category: 'everyday',
+    explanation: 'A bakery is the shop that bakes and sells bread. A library lends books and a garage repairs cars.',
   },
   {
     id: 27,
@@ -80,6 +92,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'easy',
     category: 'vocabulary',
+    explanation: 'A library lends you books to take home and bring back. A museum only displays things for you to look at.',
   },
   {
     id: 28,
@@ -88,6 +101,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'easy',
     category: 'grammar',
+    explanation: 'With “we” the verb keeps its plain form: we play. The -s ending is only for he, she, or it.',
   },
 
   // -------------------------------------------------------------- MEDIUM ---
@@ -98,6 +112,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'medium',
     category: 'synonym',
+    explanation: '“Hard” can mean not easy, so it matches difficult. “Simple” means the opposite.',
   },
   {
     id: 10,
@@ -106,6 +121,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'medium',
     category: 'grammar',
+    explanation: 'After “have” we use the past participle: have lived. We use this form with “since” when something started in the past and is still true.',
   },
   {
     id: 11,
@@ -114,6 +130,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'medium',
     category: 'sentence',
+    explanation: 'For something that may really happen, use “if” with the present tense and “will” in the other half: If it rains, we will stay.',
   },
   {
     id: 12,
@@ -122,6 +139,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'medium',
     category: 'vocabulary',
+    explanation: '“Exhausted” means extremely tired, with no energy left — for example after a long run.',
   },
   {
     id: 13,
@@ -130,6 +148,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'medium',
     category: 'antonym',
+    explanation: 'A generous person likes giving to others, so the opposite is “selfish”, someone who thinks only of themselves.',
   },
   {
     id: 14,
@@ -138,22 +157,25 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'medium',
     category: 'grammar',
+    explanation: 'The book does not read — people read it. When the subject receives the action we use was/were plus the past participle: was read.',
   },
   {
     id: 15,
-    question: "Someone knocks at the door. You say:",
+    question: 'Someone knocks at the door. You say:',
     answers: ['Come in!', 'Sit down!', 'Go away now!', 'Never mind!'],
     correctAnswer: 0,
     difficulty: 'medium',
     category: 'everyday',
+    explanation: '“Come in!” is the normal, polite way to invite someone through the door after they knock.',
   },
   {
     id: 16,
-    question: "Pick the correct spelling.",
+    question: 'Pick the correct spelling.',
     answers: ['Recieve', 'Receive', 'Receeve', 'Receve'],
     correctAnswer: 1,
     difficulty: 'medium',
     category: 'vocabulary',
+    explanation: 'It is “receive”. The old tip helps here: i before e, except after c.',
   },
   {
     id: 17,
@@ -162,6 +184,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 2,
     difficulty: 'medium',
     category: 'grammar',
+    explanation: '“Interested” is always followed by in. This pairing just has to be learned: interested in music, interested in learning.',
   },
   {
     id: 18,
@@ -170,6 +193,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'medium',
     category: 'synonym',
+    explanation: '“Commence” is a formal word for begin. “Finish” is the opposite and “delay” means to start later.',
   },
 
   // ---------------------------------------------------------------- HARD ---
@@ -185,6 +209,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'hard',
     category: 'vocabulary',
+    explanation: 'To break the ice is to say something that makes a first meeting less awkward. Nothing is really broken — it is a figure of speech.',
   },
   {
     id: 20,
@@ -193,6 +218,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'hard',
     category: 'grammar',
+    explanation: 'This is about the past that cannot be changed, so it needs “would have” plus the past participle: would have acted.',
   },
   {
     id: 21,
@@ -201,6 +227,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'hard',
     category: 'synonym',
+    explanation: '“Meticulous” means paying great attention to every small detail, which is what “thorough” means. “Careless” is the opposite.',
   },
   {
     id: 22,
@@ -209,6 +236,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'hard',
     category: 'antonym',
+    explanation: '“Scarce” means there is very little of something, so the opposite is “abundant”, meaning plenty. “Rare” means almost the same as scarce.',
   },
   {
     id: 23,
@@ -217,6 +245,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'hard',
     category: 'sentence',
+    explanation: 'When a sentence opens with “Not only”, the verb jumps in front of the subject: Not only was he late.',
   },
   {
     id: 24,
@@ -225,10 +254,11 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'hard',
     category: 'everyday',
+    explanation: 'Under the weather is a gentle way to say you feel a bit unwell. It has nothing to do with actual weather.',
   },
   {
     id: 25,
-    question: "Which sentence is grammatically correct?",
+    question: 'Which sentence is grammatically correct?',
     answers: [
       'Neither of them were ready.',
       'Neither of them was ready.',
@@ -238,6 +268,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'hard',
     category: 'grammar',
+    explanation: '“Neither” means not one, so it is singular and takes was. The words “of them” do not change that.',
   },
   {
     id: 26,
@@ -246,6 +277,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 1,
     difficulty: 'hard',
     category: 'vocabulary',
+    explanation: 'Something inevitable is certain to happen and cannot be stopped, so it means “unavoidable”. Watch the prefix: avoidable is the opposite.',
   },
   {
     id: 29,
@@ -254,6 +286,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'hard',
     category: 'grammar',
+    explanation: '“Were she to accept” is a formal way of saying “if she accepted”. It talks about an imagined situation, so the answer is “would move”.',
   },
   {
     id: 30,
@@ -262,6 +295,7 @@ export const QUESTIONS: Question[] = [
     correctAnswer: 0,
     difficulty: 'hard',
     category: 'vocabulary',
+    explanation: 'A unanimous decision is one where every single person agrees, with nobody against it.',
   },
 ];
 

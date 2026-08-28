@@ -36,24 +36,24 @@ export function createLocalPlan(report: LearnerReport): AdaptivePackage {
     category: categoryFor(report, component),
     priority: Math.max(1, 5 - index),
     reason: report.forgettingAware.dueConcepts.includes(component)
-      ? 'Retention is below the review threshold.'
-      : 'Current mastery or confidence is among the learner’s lowest.',
+      ? 'It has been a while since you practised this, so it is due for review.'
+      : 'This is one of the topics you are least sure about right now.',
   }));
 
   const plan: AiPlan = {
     feedback: {
-      headline: report.summary.answered === 0 ? 'Let’s collect a clean baseline' : 'Your next focused round is ready',
+      headline: report.summary.answered === 0 ? 'Let’s see what you can do' : 'Your next round is ready',
       strengths,
       weaknesses,
       advice: report.motorEvidence.note,
     },
     curriculum: {
-      title: 'PunchKT focus and review',
-      rationale: 'This offline plan prioritizes weak and uncertain components, then mixes in spaced review while live difficulty remains deterministic.',
+      title: 'practice and review',
+      rationale: 'These questions focus on the topics you found hardest, with a few older ones mixed back in so you do not forget them.',
       targetConcepts,
       reviewConcepts: report.forgettingAware.dueConcepts.slice(0, 5),
       difficultyMix: { easy: 10, medium: 10, hard: 10 },
-      sessionStrategy: 'Use the normal rolling accuracy policy during play; target selection comes from this prevalidated pool.',
+      sessionStrategy: 'Questions get easier or harder as you play, based on how you are doing.',
     },
     questions: ordered.map((question, index) => ({
       sequence: index + 1,
@@ -64,13 +64,16 @@ export function createLocalPlan(report: LearnerReport): AdaptivePackage {
       category: question.category,
       knowledgeComponent: knowledgeComponentFor(question),
       learningObjective: `Practise ${knowledgeComponentFor(question).replaceAll('-', ' ')}.`,
-      explanation: `“${question.answers[question.correctAnswer]}” is the correct answer.`,
+      // Authored items carry a real explanation; this only covers the rare item
+      // that has none, and the player sees it in the end-of-round review.
+      explanation: question.explanation
+        ?? `“${question.answers[question.correctAnswer]}” is the right answer here.`,
       misconceptions: question.answers.map((answer, option) =>
         option === question.correctAnswer ? 'none' : `Confused the answer with “${answer}”`,
       ),
       curriculumReason: targetNames.includes(knowledgeComponentFor(question))
-        ? 'Targets a current learning priority.'
-        : 'Provides mixed practice and retention review.',
+        ? 'One of the topics you need most right now.'
+        : 'Keeps earlier topics fresh.',
     })),
   };
 
@@ -99,9 +102,9 @@ function strengthLines(report: LearnerReport): string[] {
     .slice()
     .sort((a, b) => b.mastery - a.mastery)[0];
   if (strongest) {
-    return [`${strongest.component.replaceAll('-', ' ')} is currently your strongest measured skill.`];
+    return [`${strongest.component.replaceAll('-', ' ')} is your strongest topic so far.`];
   }
-  return ['You completed the round and created a baseline for personalization.'];
+  return ['You finished the round, so your coach now knows where to start.'];
 }
 
 function weaknessLines(report: LearnerReport): string[] {
@@ -109,11 +112,11 @@ function weaknessLines(report: LearnerReport): string[] {
   const misconception = report.misconceptionEvidence[0];
   if (weakest && misconception) {
     return [
-      `${weakest.replaceAll('-', ' ')} needs the most reinforcement.`,
-      `A repeated pattern was: ${misconception.label}.`,
+      `${weakest.replaceAll('-', ' ')} needs the most practice.`,
+      `A mistake you made more than once: ${misconception.label}.`,
     ];
   }
-  if (weakest) return [`${weakest.replaceAll('-', ' ')} needs the most reinforcement.`];
-  if (report.summary.missed > 0) return ['Some blocks escaped, so more answer-choice evidence is needed.'];
-  return ['The model needs another round before identifying a stable weakness.'];
+  if (weakest) return [`${weakest.replaceAll('-', ' ')} needs the most practice.`];
+  if (report.summary.missed > 0) return ['A few questions ran out of time, so try to answer more of them next round.'];
+  return ['Play one more round and your coach will be able to point to a clear weak spot.'];
 }

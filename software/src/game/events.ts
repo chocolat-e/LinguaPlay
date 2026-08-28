@@ -1,11 +1,23 @@
-import type { HitQuality, Outcome, Question, TargetRuntime } from './types';
+import type {
+  HitQuality,
+  MonsterPhase,
+  Outcome,
+  Question,
+  RoundOutcome,
+  TargetRuntime,
+} from './types';
+
+/** Why a question ended without a landed answer. */
+export type MissReason =
+  | 'ESCAPED'   // the row flew past untouched
+  | 'POSITION'; // punched from outside the answer's standing position
 
 /**
  * Everything the gameplay core announces to the presentation layer.
  * The scene/HUD subscribe to these; the core never imports React.
  */
 export interface GameEvents {
-  /** A new question + its four targets just spawned. */
+  /** A new question + its three targets just spawned. */
   question: { question: Question; targets: TargetRuntime[]; index: number };
   /** A punch resolved a question (or a target flew past). */
   resolved: {
@@ -16,6 +28,8 @@ export interface GameEvents {
     points: number;
     combo: number;
     multiplier: number;
+    /** Set only when `outcome` is MISS. */
+    missReason: MissReason | null;
   };
   /** Any punch at all — used to animate the player's gloves. */
   punch: { hand: 'left' | 'right' | 'unknown'; lane: number | null };
@@ -29,6 +43,39 @@ export interface GameEvents {
   beat: { index: number };
   /** Adaptive difficulty stepped up or down. */
   difficulty: { from: string; to: string; direction: 'up' | 'down' };
+
+  // ------------------------------------------------------------- combat --
+
+  /** The monster took damage, from a landed answer or a special attack. */
+  monsterDamage: {
+    amount: number;
+    hp: number;
+    maxHp: number;
+    special: boolean;
+    lane: number | null;
+  };
+  /** The monster's phase changed; `chargeSeconds` is the wind-up length. */
+  monsterPhase: { phase: MonsterPhase; chargeSeconds: number };
+  /** The monster's blow resolved against the player's guard. */
+  defense: { blocked: boolean; damage: number; playerHp: number };
+  /** The player's guard went up. */
+  guard: { raised: boolean };
+
+  // -------------------------------------------------------- word connect --
+
+  /** Progress through the earned mini game, worth a flash of feedback. */
+  wordConnect: {
+    type: 'START' | 'LETTER' | 'WORD' | 'FAIL' | 'END';
+    letter: string | null;
+    word: string;
+    wordsCompleted: number;
+  };
+  /** The special attack fired. */
+  special: { damage: number; wordsCompleted: number };
+
+  /** The round finished, and why. */
+  round: { outcome: RoundOutcome };
+
   /** Any change worth repainting the HUD for. */
   stats: Record<string, never>;
   state: { state: string };

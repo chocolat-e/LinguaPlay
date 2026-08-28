@@ -48,6 +48,43 @@ export function getAnswerTexture(
   return texture;
 }
 
+const LETTER_SIZE = 256;
+
+/**
+ * A single big letter on a transparent square, for the word-connect slots.
+ * Same canvas-into-the-material trick as the answer cards, so the letters pick
+ * up bloom and depth-sort with everything else in the scene.
+ */
+export function getLetterTexture(letter: string, color: string): THREE.CanvasTexture {
+  const key = `letter|${letter}|${color}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = LETTER_SIZE;
+  canvas.height = LETTER_SIZE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D canvas context unavailable');
+
+  const half = LETTER_SIZE / 2;
+  ctx.clearRect(0, 0, LETTER_SIZE, LETTER_SIZE);
+  ctx.font = `900 168px ${FONT_STACK}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 26;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(letter.toUpperCase(), half, half + 8);
+  ctx.shadowBlur = 0;
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.needsUpdate = true;
+  cache.set(key, texture);
+  return texture;
+}
+
 function drawCard(
   ctx: CanvasRenderingContext2D,
   letter: string,
