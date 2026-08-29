@@ -130,6 +130,11 @@ export class InputManager {
     return this.motion.stance;
   }
 
+  /** The nearest lane, never null. What the kart chase resolves rows against. */
+  get lane(): Stance {
+    return this.motion.lane;
+  }
+
   /** Which word-connect slot the hand is reaching at, or null. */
   get slotIndex(): number | null {
     return this.motion.slotIndex;

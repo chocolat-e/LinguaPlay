@@ -1518,6 +1518,190 @@ input[type='range'] {
   color: var(--wrong);
 }
 
+/* ---------------------------------------------------------- kart chase */
+
+/* Speed at the edges of the frame: tunnel vision closing in with the rush, a
+   green flare on ground made up, a red one on a crash. All three are driven
+   from a rAF loop as custom properties, never from a React render.
+
+   z-index 0 keeps it under the chase panel and the banners — this is weather,
+   not information. */
+.chase-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      ellipse 132% 104% at 50% 52%,
+      rgba(94, 224, 138, 0) 46%,
+      rgba(94, 224, 138, calc(var(--lurch, 0) * 0.42)) 100%
+    ),
+    radial-gradient(
+      ellipse 132% 104% at 50% 52%,
+      rgba(242, 85, 90, 0) 34%,
+      rgba(242, 85, 90, calc(var(--slam, 0) * 0.6)) 100%
+    ),
+    radial-gradient(
+      ellipse 122% 96% at 50% 50%,
+      rgba(4, 9, 20, 0) calc(40% - var(--rush, 0) * 16%),
+      rgba(4, 9, 20, calc(var(--rush, 0) * 0.5)) 100%
+    );
+}
+
+
+/* Same strip as the word-connect panel, in the same slot: the middle and
+   bottom of the screen belong to the road. */
+.kartgame {
+  position: absolute;
+  left: 50%;
+  top: clamp(3.4rem, 7vh, 4.4rem);
+  transform: translateX(-50%);
+  width: min(560px, 88vw);
+  padding: 0.5rem 1.1rem 0.6rem;
+  border-radius: 16px;
+  border: 1px solid rgba(76, 201, 240, 0.5);
+  background: rgba(6, 18, 30, 0.88);
+  box-shadow: 0 0 46px rgba(76, 201, 240, 0.28);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.kartgame.is-caught {
+  border-color: var(--correct);
+  box-shadow: 0 0 50px rgba(94, 224, 138, 0.4);
+}
+
+.kartgame.is-escaped {
+  border-color: rgba(242, 85, 90, 0.6);
+  box-shadow: 0 0 50px rgba(242, 85, 90, 0.32);
+}
+
+.kartgame__eyebrow {
+  margin: 0;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 0.56rem;
+  letter-spacing: 0.36em;
+  text-indent: 0.36em;
+  color: var(--muted);
+}
+
+/* The topic is the question. At speed the player has no time to hunt for it, so
+   it gets the size a question deserves and lands with a slam. */
+.kartgame__topic {
+  margin: 0.15rem 0 0.5rem;
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(1.7rem, 3.7vw, 2.7rem);
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-indent: 0.1em;
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(76, 201, 240, 0.85), 0 0 76px rgba(76, 201, 240, 0.45),
+    0 3px 16px rgba(0, 0, 0, 0.85);
+  animation: topic-slam 0.6s cubic-bezier(0.15, 1.5, 0.3, 1) both;
+}
+
+@keyframes topic-slam {
+  0% {
+    opacity: 0;
+    transform: scale(1.65);
+    letter-spacing: 0.5em;
+    filter: blur(10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.97);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* The road between the kart and the monster. The fill closes from the left, the
+   kart rides its leading edge, and the monster waits at the far end — so the
+   bar reads as a chase rather than as a progress meter.
+
+   The margins keep the two markers clear of the panel edge at 0% and 100%. */
+.kartgame__track {
+  position: relative;
+  height: 6px;
+  margin: 0 1.2rem;
+  border-radius: 999px;
+  background: rgba(76, 201, 240, 0.16);
+}
+
+.kartgame__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
+  transform-origin: left center;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.kartgame__kart,
+.kartgame__prey {
+  position: absolute;
+  top: 50%;
+  font-size: 0.95rem;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.kartgame__kart {
+  transition: left 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+  filter: drop-shadow(0 0 8px rgba(76, 201, 240, 0.9));
+}
+
+.kartgame__prey {
+  left: 100%;
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.9));
+}
+
+.is-caught .kartgame__prey {
+  animation: throb 0.5s ease-in-out infinite;
+}
+
+.kartgame__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.kartgame__footer b {
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: var(--correct);
+}
+
+.kartgame__footer .is-bad {
+  color: var(--wrong);
+}
+
+.kartgame__status {
+  font-family: var(--display);
+  letter-spacing: 0.2em;
+  color: var(--accent-soft);
+}
+
+.is-caught .kartgame__status {
+  color: var(--correct);
+}
+
+.is-escaped .kartgame__status {
+  color: var(--wrong);
+}
+
 /* --------------------------------------------------------------- crosshair */
 
 .crosshair {

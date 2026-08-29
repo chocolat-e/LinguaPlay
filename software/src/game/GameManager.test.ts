@@ -5,8 +5,10 @@ import {
   COUNTDOWN_SECONDS,
   DIRECTION_DEADZONE,
   GUARD_ACTIVE_SECONDS,
+  KART_CHASE_HP_TRIGGERS,
   MONSTER_CHARGE_SECONDS,
   PLAYER_HIT_DAMAGE,
+  RESOLVE_DELAY,
   SLOT_DIRECTIONS,
   SPECIAL_HITS_PER_WORD,
   SPECIAL_WINDUP_SECONDS,
@@ -15,7 +17,7 @@ import {
   WORD_CONNECT_STREAK,
   WORD_CONNECT_WORDS,
 } from './constants';
-import type { MoveDirection } from './types';
+import type { KartBlockRuntime, MoveDirection } from './types';
 
 const FRAME = 1 / 60;
 
@@ -799,6 +801,227 @@ describe('the special attack lands as a sequence', () => {
     expect(game.getSnapshot().combat.phase).not.toBe('SPECIAL_ATTACK');
     expect(game.specialCharge).toBe(0);
     expect(game.specialBlast).toBe(0);
+  });
+});
+
+describe('the kart chase', () => {
+  /** Hurts the monster straight to a fraction of its health. */
+  function woundTo(game: GameManager, fraction: number): void {
+    const target = Math.round(game.monster.maxHp * fraction);
+    game.monster.applyDamage(game.monster.hp - target, 0);
+  }
+
+  /** The row of pictures closest to the player that has not resolved yet. */
+  function nearestWave(game: GameManager): KartBlockRuntime[] {
+    const incoming = game.kart.liveBlocks.filter((block) => block.state === 'INCOMING');
+    if (incoming.length === 0) return [];
+    const id = Math.min(...incoming.map((block) => block.waveId));
+    return incoming.filter((block) => block.waveId === id);
+  }
+
+  /**
+   * Plays a chase out with the steering alone — never a punch, which is the
+   * whole point of this mini game.
+   */
+  function drive(game: GameManager, pick: 'match' | 'decoy'): void {
+    for (let frame = 0; frame < 3000 && game.kart.active; frame += 1) {
+      const wanted = nearestWave(game).find(
+        (block) => block.onTopic === (pick === 'match'),
+      );
+      if (wanted) game.input.motion.setAbsolute([-1, 0, 1][wanted.lane]);
+      game.tick(FRAME);
+    }
+  }
+
+  /** Wounds the monster, then lands one answer so the battle beat runs. */
+  function provokeChase(game: GameManager, fraction = 0.5): void {
+    startRound(game);
+    woundTo(game, fraction);
+    answerCorrectly(game);
+  }
+
+  it('never starts on level 1, however hurt the monster gets', () => {
+    const game = new GameManager();
+    startRound(game);
+    expect(game.getSnapshot().combat.level).toBe(1);
+
+    // Well past both flee thresholds — the diagnostic round still just asks
+    // questions, because measuring English is the only thing it is for.
+    woundTo(game, 0.05);
+    answerCorrectly(game);
+
+    expect(game.getSnapshot().combat.phase).not.toBe('KART_CHASE');
+    expect(game.kart.active).toBe(false);
+
+    advance(game, 6);
+    expect(game.getSnapshot().combat.phase).not.toBe('KART_CHASE');
+  });
+
+  it('starts once a wounded monster is hit on level 2', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+
+    const snapshot = game.getSnapshot();
+    expect(snapshot.combat.level).toBeGreaterThan(1);
+    expect(snapshot.combat.phase).toBe('KART_CHASE');
+    expect(snapshot.kartChase.active).toBe(true);
+    expect(snapshot.kartChase.topic.length).toBeGreaterThan(0);
+    expect(snapshot.kartChase.gap).toBe(1);
+    // The answer blocks are gone: the road is the only thing on screen.
+    expect(game.targets).toHaveLength(0);
+  });
+
+  it('closes the gap on steering alone, and rams the monster for it', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+
+    const hp = game.monster.hp;
+    drive(game, 'match');
+
+    expect(game.getSnapshot().combat.phase).not.toBe('KART_CHASE');
+    expect(game.monster.hp).toBeLessThan(hp);
+  });
+
+  it('lets the monster get away when every picture is the wrong one', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+
+    const hp = game.monster.hp;
+    drive(game, 'decoy');
+
+    // Crashing through the whole chase banks nothing, so it costs the monster
+    // nothing — but it costs the player no health either. The chase is a
+    // chance taken, never a punishment.
+    expect(game.monster.hp).toBe(hp);
+    expect(game.getSnapshot().combat.playerHp).toBe(game.getSnapshot().combat.playerMaxHp);
+  });
+
+  it('keeps the chase out of the accuracy numbers', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+
+    const before = game.getSnapshot().stats;
+    drive(game, 'match');
+    const after = game.getSnapshot().stats;
+
+    // Pictures are not questions, so they move the score and nothing else.
+    expect(after.correct).toBe(before.correct);
+    expect(after.wrong).toBe(before.wrong);
+    expect(after.missed).toBe(before.missed);
+    expect(after.score).toBeGreaterThan(before.score);
+  });
+
+  it('ignores a punch thrown at a picture', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+
+    const banked = game.kart.collected;
+    punch(game);
+    punch(game);
+
+    expect(game.getSnapshot().combat.phase).toBe('KART_CHASE');
+    expect(game.kart.collected).toBe(banked);
+  });
+
+  it('clears the road once the chase is over', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+
+    const types: string[] = [];
+    game.bus.on('kartChase', (payload) => types.push(payload.type));
+
+    // Catching it ends the chase early, with rows still in the air — the case
+    // that used to leave frozen cards hanging in the tunnel, because a block
+    // still INCOMING has no fade of its own to run.
+    drive(game, 'match');
+
+    expect(game.kart.active).toBe(false);
+    expect(game.kart.liveBlocks).toHaveLength(0);
+    // The scene mirrors the block list on this event, so the one announcing an
+    // empty road has to be the last one out.
+    expect(types[types.length - 1]).toBe('END');
+  });
+
+  it('leaves no picture behind once the next question is up', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+    drive(game, 'match');
+    advance(game, RESOLVE_DELAY + 2);
+
+    expect(game.getSnapshot().combat.phase).toBe('ANSWERING');
+    expect(game.kart.liveBlocks).toHaveLength(0);
+    expect(game.getSnapshot().kartChase.active).toBe(false);
+  });
+
+  it('hands the road back and asks the next question', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+    drive(game, 'match');
+
+    advance(game, RESOLVE_DELAY + 1);
+    expect(game.getSnapshot().combat.phase).toBe('ANSWERING');
+    expect(game.targets).toHaveLength(3);
+  });
+
+  it('spends each flee threshold once, so the fight is not all driving', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+    drive(game, 'decoy');
+    advance(game, RESOLVE_DELAY + 1);
+
+    // Same health band, another correct answer: it has already run from here.
+    expect(game.getSnapshot().combat.phase).toBe('ANSWERING');
+    answerCorrectly(game);
+    expect(game.getSnapshot().combat.phase).not.toBe('KART_CHASE');
+  });
+
+  it('runs again once the monster is hurt into the next band', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game, KART_CHASE_HP_TRIGGERS[0]);
+    drive(game, 'decoy');
+    advance(game, RESOLVE_DELAY + 1);
+
+    woundTo(game, KART_CHASE_HP_TRIGGERS[1]);
+    answerCorrectly(game);
+
+    expect(game.getSnapshot().combat.phase).toBe('KART_CHASE');
+  });
+
+  it('is steered with the feet, so the answer lanes still work after it', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+    // The chase never takes the hand, so the motion model stays on the body.
+    expect(game.input.motion.mode).toBe('STANCE');
+
+    drive(game, 'match');
+    advance(game, RESOLVE_DELAY + 1);
+
+    moveTo(game, 0);
+    expect(game.input.stance).toBe(0);
+  });
+
+  it('resolves a row against the nearest lane, gaps included', () => {
+    const game = new GameManager();
+    promoteToLevelTwo(game);
+    provokeChase(game);
+
+    // Out past RIGHT's standing tolerance is no answer at all while a question
+    // is up — but a kart is always on some part of the road.
+    game.input.motion.setAbsolute(0.55);
+    advance(game, 0.5);
+    expect(game.input.stance).toBeNull();
+    expect(game.input.lane).toBe(2);
   });
 });
 

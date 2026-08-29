@@ -59,7 +59,10 @@ export function StanceIndicator() {
       // x runs -1..1 and the track is a percentage box, so remap to 0..100.
       node.style.left = `${(motion.x + 1) * 50}%`;
 
-      const stance = motion.stance;
+      // Driving has no gaps: the kart is always in the nearest lane, and the
+      // track has to say so or it would read as "not locked" for most of a
+      // chase. Answering keeps the strict reading, where a gap really is one.
+      const stance = game.kart.active ? motion.lane : motion.stance;
       if (stance === lastStance) return;
       lastStance = stance;
       node.dataset.locked = stance === null ? 'false' : 'true';

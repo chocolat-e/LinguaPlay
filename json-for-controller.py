@@ -11,7 +11,9 @@ controller_data = {
     "x": 0,
     "y": 0,
     "punchPower": 0,
-    "accPower": 0
+    "accPower": 0,
+    # Steering angle for the kart chase: -1 fully left, 0 level, +1 fully right.
+    "tilt": 0
 }
 
 @app.post("/api/controller")

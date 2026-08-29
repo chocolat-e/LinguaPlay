@@ -73,6 +73,40 @@ export interface GameEvents {
   /** The special attack fired. */
   special: { damage: number; wordsCompleted: number };
 
+  // ---------------------------------------------------------- kart chase --
+
+  /**
+   * Progress through the chase. `WAVE` fires as a row enters the tunnel, which
+   * is what the scene re-syncs its block list on.
+   */
+  kartChase: {
+    type:
+      | 'START'
+      | 'WAVE'
+      | 'COLLECT'
+      | 'CRASH'
+      | 'DODGE'
+      | 'CAUGHT'
+      | 'ESCAPED'
+      /**
+       * The chase is torn down and the road is empty. Fired *after* the
+       * manager has cleared itself, which is what the scene needs: it mirrors
+       * the live block list, and `CAUGHT`/`ESCAPED` still carry a full one so
+       * the result can be read.
+       */
+      | 'END';
+    /** The topic being driven through, e.g. "ANIMALS". */
+    topic: string;
+    /** The picture that just resolved, or null. */
+    word: string | null;
+    lane: number | null;
+    collected: number;
+    /** Distance still to close, 1 far, 0 caught. */
+    gap: number;
+    /** Damage dealt, set only on CAUGHT and ESCAPED. */
+    damage: number;
+  };
+
   /** The round finished, and why. */
   round: { outcome: RoundOutcome };
 

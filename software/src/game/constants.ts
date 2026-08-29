@@ -210,6 +210,83 @@ export const SLOT_X = [0, 5.6, 0, -5.6];
 export const SLOT_Y = [4.0, 1.4, -1.2, 1.4];
 export const SLOT_Z = -2.5;
 
+// ----------------------------------------------------------- kart chase --
+
+/**
+ * Monster health fractions that make it break and run, in the order they are
+ * crossed. Each one buys exactly one chase, so a fight has at most two — enough
+ * that the chase reads as a turning point in the battle rather than a level.
+ */
+export const KART_CHASE_HP_TRIGGERS = [0.6, 0.3] as const;
+
+/** Rows of pictures in one chase. */
+export const KART_WAVES = 8;
+/**
+ * Net pictures needed to run the monster down. One row can only ever be worth
+ * one, so this is "get most of them right" — and a crash gives one back.
+ */
+export const KART_CATCH_TARGET = 5;
+export const KART_CRASH_COST = 1;
+
+/** Rows enter from further back than the answer blocks: they arrive at speed. */
+export const KART_SPAWN_Z = -68;
+/**
+ * ...and stop well short of the camera. An answer block is allowed to fly right
+ * past the player because there is only ever one row of them; a chase has rows
+ * going by constantly, and a 2.5-unit card three units from the lens fills the
+ * whole screen. This is where a row is done.
+ */
+export const KART_DESPAWN_Z = 2.4;
+/**
+ * World units per second, before the speed setting scales it.
+ *
+ * Paired with a deep `KART_SPAWN_Z`, this gives roughly three seconds from a
+ * row appearing to it arriving — recognising a picture and deciding whether it
+ * belongs to the topic is a reading task, and rushing it just makes the round
+ * a coin flip. The *sense* of speed comes from the tunnel and the lens, which
+ * is why this can be calm without the chase feeling slow.
+ */
+export const KART_BLOCK_SPEED = 24;
+/** Seconds between rows. Long enough that rows never bunch up on each other. */
+export const KART_WAVE_INTERVAL = 1.6;
+/** A beat to read the topic before the first row appears. */
+export const KART_LEAD_IN = 1.2;
+/** ...and one after the last row resolves, before the hit lands. */
+export const KART_TAIL = 0.9;
+
+/**
+ * The chase runs on wider lanes than the answer game.
+ *
+ * Three cards on the answer game's ±4 spacing very nearly touch once they are
+ * close, and telling them apart at a glance is the whole task here. Steering is
+ * untouched — the player still moves between lanes 0/1/2 — this only decides
+ * where the pictures sit.
+ */
+export const KART_LANE_X = [-5.6, 0, 5.6];
+export const KART_BLOCK_Y = 1.9;
+export const KART_BLOCK_SIZE = 3.0;
+/** Where the lane guides are painted, just clear of the tunnel floor. */
+export const KART_LANE_Y = -1.55;
+
+// How the chase *looks*. None of this changes a rule: it is what the tunnel,
+// the camera and the monster read to make the speed legible.
+
+/** How far down the tunnel the monster runs while the gap is still wide. */
+export const KART_FLEE_DISTANCE = 54;
+/** ...and how far it swerves across the road as it runs. */
+export const KART_FLEE_WEAVE = 4.2;
+/** How quickly the world winds up into the chase, and coasts back out of it. */
+export const KART_RUSH_ATTACK = 2.4;
+export const KART_RUSH_RELEASE = 1.7;
+/** How fast the camera hauls the monster in as ground is made up. */
+export const KART_GAP_DAMPING = 4.5;
+
+/** Damage per picture collected, and the bonus for actually catching it. */
+export const KART_DAMAGE_PER_PICTURE = 9;
+export const KART_RAM_DAMAGE = 46;
+/** Score per picture collected. Never touches the accuracy counts. */
+export const KART_SCORE_PER_PICTURE = 120;
+
 /** Pause between a question resolving and the next one spawning. */
 export const RESOLVE_DELAY = 0.9;
 export const COUNTDOWN_SECONDS = 4; // 3 · 2 · 1 · GO!

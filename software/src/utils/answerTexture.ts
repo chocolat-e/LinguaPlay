@@ -85,6 +85,172 @@ export function getLetterTexture(letter: string, color: string): THREE.CanvasTex
   return texture;
 }
 
+const PICTURE_SIZE = 512;
+/**
+ * Pictures get their own cache rather than sharing the answer cards'. That one
+ * evicts its oldest entry once it grows past a cap, and a chase holding a
+ * texture that had just been disposed would render a black block.
+ * `pictureBank` is a fixed list, so this map has a natural ceiling of its own.
+ */
+const pictureCache = new Map<string, THREE.CanvasTexture>();
+const EMOJI_STACK =
+  '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif';
+
+/**
+ * A picture card for the kart chase: the emoji large, its English word beneath.
+ *
+ * Emoji rather than image files, for the same reason the sounds are synthesised
+ * — there is no asset to ship, nothing to fetch, and nothing that can 404. The
+ * word is drawn on every card, on topic or not, so the picture never gives the
+ * answer away by how it is presented; only what it *is* decides the lane.
+ */
+export function getPictureTexture(
+  emoji: string,
+  word: string,
+  color: string,
+): THREE.CanvasTexture {
+  const key = `${emoji}|${word}|${color}`;
+  const cached = pictureCache.get(key);
+  if (cached) return cached;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = PICTURE_SIZE;
+  canvas.height = PICTURE_SIZE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D canvas context unavailable');
+
+  const pad = 14;
+  const inner = PICTURE_SIZE - pad * 2;
+
+  ctx.clearRect(0, 0, PICTURE_SIZE, PICTURE_SIZE);
+
+  // Same dark glassy panel as the answer cards, so the two read as one game.
+  roundRect(ctx, pad, pad, inner, inner, 46);
+  const body = ctx.createLinearGradient(0, pad, 0, PICTURE_SIZE - pad);
+  body.addColorStop(0, 'rgba(15, 23, 42, 0.96)');
+  body.addColorStop(1, 'rgba(10, 16, 30, 0.98)');
+  ctx.fillStyle = body;
+  ctx.fill();
+
+  ctx.lineWidth = 11;
+  ctx.strokeStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 18;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // The picture. Colour emoji ignore fillStyle, which is the point of them.
+  ctx.font = `300px ${EMOJI_STACK}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, PICTURE_SIZE / 2, PICTURE_SIZE * 0.40);
+
+  // A band behind the word, so it stays legible over a busy emoji rather than
+  // relying on a drop shadow that the bloom pass washes out anyway.
+  const bandY = PICTURE_SIZE * 0.755;
+  const bandH = PICTURE_SIZE * 0.2;
+  ctx.fillStyle = 'rgba(4, 9, 20, 0.9)';
+  ctx.fillRect(pad + 6, bandY, inner - 12, bandH);
+
+  // The word, shrunk to fit however long it is.
+  let size = 88;
+  const maxWidth = inner - 34;
+  do {
+    ctx.font = `900 ${size}px ${FONT_STACK}`;
+    if (ctx.measureText(word).width <= maxWidth) break;
+    size -= 4;
+  } while (size > 32);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(word, PICTURE_SIZE / 2, bandY + bandH / 2 + 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.needsUpdate = true;
+  pictureCache.set(key, texture);
+  return texture;
+}
+
+const SIGN_W = 1024;
+const SIGN_H = 232;
+const signCache = new Map<string, THREE.CanvasTexture>();
+
+/**
+ * A roadside sign carrying the chase's topic.
+ *
+ * The topic is the whole question of the kart chase, and the player's eyes are
+ * on the road, not on the HUD strip at the top of the screen. Repeating it down
+ * the tunnel wall — the way a motorway keeps telling you which road you are on
+ * — means it can never be lost track of at speed.
+ */
+export function getTopicSignTexture(topic: string, color: string): THREE.CanvasTexture {
+  const key = `${topic}|${color}`;
+  const cached = signCache.get(key);
+  if (cached) return cached;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = SIGN_W;
+  canvas.height = SIGN_H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D canvas context unavailable');
+
+  ctx.clearRect(0, 0, SIGN_W, SIGN_H);
+
+  // Dark plate, so the word holds up against a bright tunnel wall.
+  roundRect(ctx, 8, 8, SIGN_W - 16, SIGN_H - 16, 26);
+  ctx.fillStyle = 'rgba(6, 12, 26, 0.9)';
+  ctx.fill();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 20;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Chevrons pointing the way down the road, on both ends.
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 11;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i += 1) {
+    for (const [x, dir] of [[54 + i * 26, 1], [SIGN_W - 54 - i * 26, -1]] as const) {
+      ctx.beginPath();
+      ctx.moveTo(x - 11 * dir, SIGN_H / 2 - 26);
+      ctx.lineTo(x + 11 * dir, SIGN_H / 2);
+      ctx.lineTo(x - 11 * dir, SIGN_H / 2 + 26);
+      ctx.globalAlpha = 0.35 + i * 0.25;
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // The topic itself, shrunk only as far as it has to be to fit.
+  const maxWidth = SIGN_W - 320;
+  let size = 108;
+  do {
+    ctx.font = `900 ${size}px ${FONT_STACK}`;
+    if (ctx.measureText(topic).width <= maxWidth) break;
+    size -= 4;
+  } while (size > 44);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 30;
+  ctx.fillText(topic, SIGN_W / 2, SIGN_H / 2 + 4);
+  ctx.shadowBlur = 0;
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.needsUpdate = true;
+
+  // One entry per topic, and there are only a handful of topics.
+  signCache.set(key, texture);
+  return texture;
+}
+
 function drawCard(
   ctx: CanvasRenderingContext2D,
   letter: string,

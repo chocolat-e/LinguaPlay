@@ -7,7 +7,7 @@ import {
 import type { GameEvents } from '../../game/events';
 import { game } from '../../game/instance';
 import { useGameEvent } from '../../hooks/useGameEvent';
-import { useCombat, useWordConnect } from '../../hooks/useGameState';
+import { useCombat, useKartChase, useWordConnect } from '../../hooks/useGameState';
 
 interface Banner {
   key: number;
@@ -54,6 +54,28 @@ export function CombatOverlay() {
   );
   useGameEvent('special', onSpecial);
 
+  const onChase = useCallback(
+    (payload: GameEvents['kartChase']) => {
+      if (payload.type === 'START') {
+        // The topic gets the headline. "It's running" is the story; the topic
+        // is the thing the player has to act on in the next two seconds.
+        show(payload.topic, "IT'S RUNNING — drive through these, dodge the rest", 'special');
+        return;
+      }
+      if (payload.type === 'CAUGHT') {
+        show('RAMMED IT!', `Caught it · -${payload.damage} HP`, 'special');
+        return;
+      }
+      if (payload.type === 'ESCAPED') {
+        // Still worth something: every picture collected landed on it.
+        if (payload.damage > 0) show('IT GOT AWAY', `Clipped it · -${payload.damage} HP`, 'bad');
+        else show('IT GOT AWAY', 'Nothing collected', 'bad');
+      }
+    },
+    [show],
+  );
+  useGameEvent('kartChase', onChase);
+
   useEffect(() => {
     if (!banner) return;
     // The special attack announces itself before the blow lands, so its
@@ -69,6 +91,8 @@ export function CombatOverlay() {
 
   return (
     <>
+      <ChaseFlash />
+
       {charging && (
         <div className={`charge${urgent ? ' charge--urgent' : ''}`}>
           <p className="charge__title">INCOMING ATTACK</p>
@@ -97,8 +121,55 @@ export function CombatOverlay() {
       )}
 
       <WordConnectPanel />
+      <KartChasePanel />
     </>
   );
+}
+
+/**
+ * Speed, felt at the edges of the screen.
+ *
+ * Tunnel vision closing in with the rush, a green flare when ground is made up
+ * and a red one on a crash. Read per frame from the simulation and written to
+ * three CSS variables — the same rAF-not-React path the special attack's flash
+ * uses, because none of these numbers can survive a round trip through a store.
+ *
+ * Rendered first and left at `z-index: 0` so it sits *behind* the chase panel
+ * and the banners rather than washing them out.
+ */
+function ChaseFlash() {
+  const flash = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let frame = 0;
+    let lastShown = false;
+
+    const tick = () => {
+      frame = requestAnimationFrame(tick);
+      const node = flash.current;
+      if (!node) return;
+
+      const rush = game.chaseRush;
+      const lurch = game.chaseLurch;
+      const slam = game.chaseSlam;
+      const shown = rush > 0.004 || lurch > 0.004 || slam > 0.004;
+      if (shown !== lastShown) {
+        lastShown = shown;
+        node.style.display = shown ? 'block' : 'none';
+      }
+      if (!shown) return;
+
+      node.style.setProperty('--rush', `${rush}`);
+      // Squared, so a flare is a spike rather than a long smear.
+      node.style.setProperty('--lurch', `${lurch * lurch}`);
+      node.style.setProperty('--slam', `${slam * slam}`);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return <div ref={flash} className="chase-flash" style={{ display: 'none' }} />;
 }
 
 /**
@@ -142,6 +213,61 @@ function SpecialFlash() {
   }, []);
 
   return <div ref={flash} className="special-flash" style={{ display: 'none' }} />;
+}
+
+/**
+ * The chase read-out: what to drive through, and how much road is left between
+ * the kart and the monster.
+ *
+ * The gap bar is the whole story — it fills toward the monster with every
+ * picture collected and gives ground back on every crash, so the player can see
+ * at a glance whether they are actually catching it.
+ */
+function KartChasePanel() {
+  const chase = useKartChase();
+  if (!chase.active) return null;
+
+  const closed = 1 - chase.gap;
+  const caught = chase.status === 'CAUGHT';
+  const escaped = chase.status === 'ESCAPED';
+
+  return (
+    <div className={`kartgame${caught ? ' is-caught' : ''}${escaped ? ' is-escaped' : ''}`}>
+      {/* The topic is the whole question of this mini game, so it is the whole
+          panel. Everything else is a footnote under it. Keyed on the topic so
+          the slam-in animation re-fires whenever a new chase starts. */}
+      {/* Both rules of the mini game, above the one word they apply to. No
+          article — topics are plural nouns and "drive through the music" is
+          not a sentence anyone wants to read at speed. */}
+      <p className="kartgame__eyebrow">DRIVE THROUGH · DODGE THE REST</p>
+      <p key={chase.topic} className="kartgame__topic">
+        {chase.topic}
+      </p>
+
+      <div className="kartgame__track">
+        <span className="kartgame__fill" style={{ transform: `scaleX(${closed})` }} />
+        {/* The kart rides the leading edge of the ground it has made up; the
+            monster sits at the far end, waiting to be caught. */}
+        <span className="kartgame__kart" style={{ left: `${closed * 100}%` }}>
+          🛞
+        </span>
+        <span className="kartgame__prey">👾</span>
+      </div>
+
+      <p className="kartgame__footer">
+        <span className="kartgame__status">
+          {caught ? 'CAUGHT IT!' : escaped ? 'IT GOT AWAY' : 'CLOSING IN…'}
+        </span>
+        <span>
+          <b>{chase.collected}</b> picked
+          {chase.crashed > 0 && <b className="is-bad"> · {chase.crashed} crashed</b>}
+        </span>
+        <span>
+          row {Math.min(chase.waveIndex + 1, chase.totalWaves)}/{chase.totalWaves}
+        </span>
+      </p>
+    </div>
+  );
 }
 
 /** The mini game's own read-out: the word so far, and the time left on it. */

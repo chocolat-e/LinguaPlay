@@ -18,8 +18,7 @@ const GRID_VERT = /* glsl */ `
  */
 const GRID_FRAG = /* glsl */ `
   varying vec2 vUv;
-  uniform float uTime;
-  uniform float uSpeed;
+  uniform float uScroll;
   uniform vec2 uRepeat;
   uniform vec3 uNear;
   uniform vec3 uFar;
@@ -27,7 +26,7 @@ const GRID_FRAG = /* glsl */ `
 
   void main() {
     vec2 uv = vUv * uRepeat;
-    uv.y += uTime * uSpeed;
+    uv.y += uScroll;
 
     vec2 grid = abs(fract(uv - 0.5) - 0.5) / fwidth(uv);
     float line = min(grid.x, grid.y);
@@ -44,6 +43,11 @@ const GRID_FRAG = /* glsl */ `
   }
 `;
 
+/**
+ * @param speed base scroll rate. Kept on `userData` rather than in a uniform
+ *   because the frame loop scales it by the chase rush and integrates it — a
+ *   `time * speed` uniform would make the grid jump every time the rate moved.
+ */
 function useGridMaterial(near: string, far: string, repeat: [number, number], speed: number, opacity: number) {
   return useMemo(
     () =>
@@ -54,13 +58,13 @@ function useGridMaterial(near: string, far: string, repeat: [number, number], sp
         depthWrite: false,
         side: THREE.DoubleSide,
         uniforms: {
-          uTime: { value: 0 },
-          uSpeed: { value: speed },
+          uScroll: { value: 0 },
           uRepeat: { value: new THREE.Vector2(repeat[0], repeat[1]) },
           uNear: { value: new THREE.Color(near) },
           uFar: { value: new THREE.Color(far) },
           uOpacity: { value: opacity },
         },
+        userData: { baseSpeed: speed, baseOpacity: opacity },
       }),
     [near, far, repeat, speed, opacity],
   );
@@ -129,30 +133,49 @@ export function NeonTunnel() {
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
     const t = game.time;
+
+    // The road is what sells the speed. During a chase everything in the
+    // tunnel — grid, rings, dust — runs several times faster and brighter, and
+    // because `chaseRush` ramps rather than snapping, the world visibly winds
+    // up into the chase and coasts back out of it.
+    const rush = game.chaseRush;
+    const scroll = 1 + rush * 4.2;
+
     for (const material of [floorMat, ceilMat, leftMat, rightMat]) {
-      material.uniforms.uTime.value = t;
+      material.uniforms.uScroll.value += material.userData.baseSpeed * scroll * dt * 12;
+      material.uniforms.uOpacity.value =
+        material.userData.baseOpacity * (1 + rush * 0.85);
     }
 
     // Rings sweep toward the player and wrap around.
-    const ringSpeed = 26 + game.beatPulse * 12;
+    const ringSpeed = (26 + game.beatPulse * 12) * (1 + rush * 2.7);
     for (const ring of rings.current) {
       if (!ring) continue;
       ring.position.z += ringSpeed * dt;
       if (ring.position.z > RING_END) ring.position.z -= RING_SPAN;
       const depth = (RING_END - ring.position.z) / RING_SPAN;
       const material = ring.material as THREE.MeshBasicMaterial;
-      material.opacity = 0.22 * (1 - depth) + 0.03;
+      material.opacity = (0.22 * (1 - depth) + 0.03) * (1 + rush * 1.6);
+      // Squeezed vertically at speed, so the rings read as a throat being torn
+      // through rather than as hoops standing still.
+      ring.scale.set(1 + rush * 0.06, 1 - rush * 0.05, 1);
     }
 
-    // Dust drifts forward.
+    // Dust drifts forward — and streaks past once the kart is moving.
+    const dustSpeed = 9 * (1 + rush * 7);
     const positions = dustGeometry.attributes.position as THREE.BufferAttribute;
     const array = positions.array as Float32Array;
     for (let i = 2; i < array.length; i += 3) {
-      array[i] += 9 * dt;
+      array[i] += dustSpeed * dt;
       if (array[i] > RING_END + 10) array[i] = TUNNEL_START_Z;
     }
     positions.needsUpdate = true;
-    if (dust.current) dust.current.rotation.z = Math.sin(t * 0.08) * 0.05;
+    if (dust.current) {
+      dust.current.rotation.z = Math.sin(t * 0.08) * 0.05;
+      const material = dust.current.material as THREE.PointsMaterial;
+      material.opacity = 0.25 + rush * 0.45;
+      material.size = 0.08 + rush * 0.05;
+    }
   });
 
   return (

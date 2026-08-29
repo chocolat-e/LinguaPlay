@@ -60,6 +60,20 @@ export function HowToPlay() {
             </span>
           </div>
           <div className="howto__card">
+            <strong>The chase</strong>
+            <span>
+              Hurt the monster enough and it runs. Steer your kart between the three
+              lanes — tilt the controller, or use ← →. There is no punch here at all.
+            </span>
+          </div>
+          <div className="howto__card">
+            <strong>Chase: pictures</strong>
+            <span>
+              Rows of pictures come at you under one topic. Drive through the ones that
+              belong to it, dodge the ones that do not. Close the gap and you ram it.
+            </span>
+          </div>
+          <div className="howto__card">
             <strong>Timing bonus</strong>
             <span>PERFECT +50 · GREAT +25 · GOOD +10, and cleaner punches hurt more.</span>
           </div>

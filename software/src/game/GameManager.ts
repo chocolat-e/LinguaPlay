@@ -5,12 +5,14 @@ import { knowledgeComponentFor, misconceptionFor } from '../adaptive/questionPro
 import { selectNextLevelStartDifficulty } from '../adaptive/startDifficulty';
 import { ComboManager } from './ComboManager';
 import { DifficultyManager } from './DifficultyManager';
+import { KartChaseManager, chaseDamage, type KartGateResult } from './KartChaseManager';
 import { MonsterManager } from './MonsterManager';
 import { QuestionManager } from './QuestionManager';
 import { ScoreManager } from './ScoreManager';
 import { WordConnectManager, specialAttackDamage } from './WordConnectManager';
+import { pickTopic } from './pictureBank';
 import { pickWordConnectWords } from './wordBank';
-import { EventBus, type MissReason } from './events';
+import { EventBus, type GameEvents, type MissReason } from './events';
 import { InputManager, KeyboardSource, slotOf } from './input';
 import type { PunchEvent } from './input';
 import {
@@ -23,6 +25,14 @@ import {
   ENTRY_TIME,
   GAME_OVER_SECONDS,
   HIT_WINDOW,
+  KART_BLOCK_Y,
+  KART_CHASE_HP_TRIGGERS,
+  KART_GAP_DAMPING,
+  KART_LANE_X,
+  KART_RUSH_ATTACK,
+  KART_RUSH_RELEASE,
+  KART_SCORE_PER_PICTURE,
+  KART_WAVES,
   LANE_X,
   LANE_Y,
   MONSTER_RECOVER_SECONDS,
@@ -61,6 +71,7 @@ import type {
   GameSettings,
   GameState,
   HitQuality,
+  KartChaseSnapshot,
   Outcome,
   Question,
   ReviewItem,
@@ -91,6 +102,7 @@ export interface GameSnapshot {
   coach: CoachState;
   combat: CombatSnapshot;
   wordConnect: WordConnectSnapshot;
+  kartChase: KartChaseSnapshot;
   /** Wrong and missed questions from this round, for the end-of-round review. */
   review: ReviewItem[];
 }
@@ -143,6 +155,7 @@ export class GameManager {
   readonly learner = new PunchKTLearner();
   readonly monster = new MonsterManager();
   readonly wordConnect = new WordConnectManager();
+  readonly kart = new KartChaseManager();
 
   /** Live targets. Mutated in place every frame; never reallocated per frame. */
   readonly targets: TargetRuntime[] = [];
@@ -160,6 +173,26 @@ export class GameManager {
   specialCharge = 0;
   /** 0..1, spiked by every blow of the special attack. Drives flash and zoom. */
   specialBlast = 0;
+
+  /**
+   * How hard the world is rushing past, 0..1.
+   *
+   * The chase's presentation all hangs off this one number: the tunnel grid
+   * scrolls by it, the camera drops and widens by it, the speed streaks fade in
+   * on it. It ramps rather than snapping, so the world winds up into the chase
+   * and coasts back out instead of cutting between two states.
+   */
+  chaseRush = 0;
+  /**
+   * Smoothed distance to the fleeing monster, 1 far → 0 alongside. Damped
+   * rather than read straight off `kart.gap` so every picture banked hauls the
+   * monster visibly closer instead of teleporting it.
+   */
+  chaseGap = 1;
+  /** Spikes to 1 when a picture is banked. A lurch forward. */
+  chaseLurch = 0;
+  /** Spikes to 1 on a crash. A jolt sideways. */
+  chaseSlam = 0;
 
   private state: GameState = 'MENU';
   private currentQuestion: Question | null = null;
@@ -203,6 +236,13 @@ export class GameManager {
    * one letter, not a stream of them.
    */
   private lastReachSlot: number | null = null;
+  /**
+   * How many of `KART_CHASE_HP_TRIGGERS` the monster has already bolted at.
+   * Each threshold is worth exactly one chase per fight.
+   */
+  private chasesSpent = 0;
+  /** The last chase's topic, so two in a row are never the same vocabulary. */
+  private lastChaseTopic: string | null = null;
   /** Which beat of the special attack is running. */
   private specialStage: SpecialStage = 'FINISH';
   private specialHitsLeft = 0;
@@ -339,9 +379,16 @@ export class GameManager {
     this.roundOutcome = null;
     this.recentAnswers = [];
     this.lastReachSlot = null;
+    this.chasesSpent = 0;
+    this.lastChaseTopic = null;
+    this.chaseRush = 0;
+    this.chaseGap = 1;
+    this.chaseLurch = 0;
+    this.chaseSlam = 0;
     this.publishAccumulator = 0;
     this.monster.reset();
     this.wordConnect.reset();
+    this.kart.reset();
 
     this.input.setEnabled(true);
     this.input.setAimLane(null);
@@ -375,6 +422,7 @@ export class GameManager {
     if (this.phase !== 'SPECIAL_ATTACK') {
       this.specialCharge = Math.max(0, this.specialCharge - dt * 3);
     }
+    this.tickChaseFeel(real);
 
     switch (this.state) {
       case 'COUNTDOWN':
@@ -390,6 +438,33 @@ export class GameManager {
       default:
         break;
     }
+  }
+
+  /**
+   * Advance the chase's presentation signals.
+   *
+   * Driven by *real* seconds, not the slow-motion clock: the rush is how fast
+   * the world feels, and a finisher crawling time should not also decide how
+   * quickly the tunnel spins up.
+   */
+  private tickChaseFeel(dt: number): void {
+    const chasing = this.phase === 'KART_CHASE';
+    this.chaseRush = damp(
+      this.chaseRush,
+      chasing ? 1 : 0,
+      chasing ? KART_RUSH_ATTACK : KART_RUSH_RELEASE,
+      dt,
+    );
+    // Once the chase is over the gap opens back up slowly, which is what walks
+    // the monster back to its resting place instead of snapping it there.
+    this.chaseGap = damp(
+      this.chaseGap,
+      chasing ? this.kart.gap : 1,
+      chasing ? KART_GAP_DAMPING : 1.2,
+      dt,
+    );
+    this.chaseLurch = Math.max(0, this.chaseLurch - dt * 2.2);
+    this.chaseSlam = Math.max(0, this.chaseSlam - dt * 2.6);
   }
 
   private tickCountdown(dt: number): void {
@@ -437,6 +512,9 @@ export class GameManager {
       case 'SPECIAL_ATTACK':
         this.tickSpecialAttack(dt);
         break;
+      case 'KART_CHASE':
+        this.tickKartChase(dt);
+        break;
     }
 
     this.publishClock(dt);
@@ -478,7 +556,8 @@ export class GameManager {
     const timed =
       this.phase === 'MONSTER_CHARGING' ||
       this.phase === 'MONSTER_STRIKING' ||
-      this.phase === 'WORD_CONNECT';
+      this.phase === 'WORD_CONNECT' ||
+      this.phase === 'KART_CHASE';
 
     if (timed) {
       this.publishAccumulator += dt;
@@ -502,6 +581,7 @@ export class GameManager {
     this.sessionFinalized = true;
     this.roundOutcome = outcome;
     this.wordConnect.reset();
+    this.kart.reset();
     // The round can end mid mini game, so the hand never stays in control.
     this.input.motion.setMode('STANCE');
     this.clearTargets();
@@ -850,6 +930,7 @@ export class GameManager {
         return;
       }
       if (this.correctStreak >= WORD_CONNECT_STREAK && this.startWordConnect()) return;
+      if (this.maybeStartChase()) return;
     } else {
       this.correctStreak = 0;
       if (this.canCounterAttack()) {
@@ -1160,6 +1241,9 @@ export class GameManager {
           return;
         }
         this.monster.settle(this.elapsed);
+        // A special attack is the likeliest thing to knock the monster past a
+        // flee threshold, so this is where the chase most often begins.
+        if (this.maybeStartChase()) return;
         this.resumeAnswering(RESOLVE_DELAY);
         return;
       }
@@ -1220,6 +1304,158 @@ export class GameManager {
     // Publish per blow, so the health bar drops in step with the barrage
     // instead of catching up a second later. Ten renders across the whole
     // attack is still the discrete-event path, not a per-frame one.
+    this.emitSnapshot();
+  }
+
+  // ------------------------------------------------------------ kart chase --
+
+  /**
+   * A hurt monster does not stand and take it: past each health threshold it
+   * turns and runs down the tunnel, and the fight becomes a chase.
+   *
+   * Gated on the level for the same reason the counter-attack is — level 1 is
+   * the diagnostic round, whose whole job is to measure English without the
+   * fight getting in the way. A driving game is exactly the kind of thing that
+   * would get in the way, so it starts at level 2.
+   *
+   * @returns true when the chase actually began and the caller should stop.
+   */
+  private maybeStartChase(): boolean {
+    if (this.level <= DIAGNOSTIC_LEVEL) return false;
+    if (!this.monster.alive) return false;
+
+    // One blow can cross more than one threshold. Spend all of them, and run
+    // one chase, rather than queueing a second for the next correct answer.
+    let crossed = false;
+    while (
+      this.chasesSpent < KART_CHASE_HP_TRIGGERS.length &&
+      this.monster.hpFraction <= KART_CHASE_HP_TRIGGERS[this.chasesSpent]
+    ) {
+      this.chasesSpent += 1;
+      crossed = true;
+    }
+    if (!crossed) return false;
+
+    return this.startKartChase();
+  }
+
+  private startKartChase(): boolean {
+    const topic = pickTopic(this.lastChaseTopic);
+    this.lastChaseTopic = topic.id;
+
+    this.clearTargets();
+    this.kart.start(topic, KART_WAVES, this.settings.speed);
+    this.phase = 'KART_CHASE';
+    // The feet are the steering. Answering already drives this channel, so a
+    // tilt sensor needs no second mapping to work here — the same normalised
+    // -1..1 body position that walks between answers now steers between lanes.
+    this.input.motion.setMode('STANCE');
+    this.audio.play('charge');
+    this.emitChase('START', null, null, 0);
+    return true;
+  }
+
+  private tickKartChase(dt: number): void {
+    const before = this.kart.status;
+    const result = this.kart.tick(dt, this.elapsed, this.input.lane);
+
+    if (this.kart.justSpawned) this.emitChase('WAVE', null, null, 0);
+    for (const gate of this.kart.drainResults()) this.resolveGate(gate);
+
+    // The instant the chase is decided, so the panel can show how it went
+    // while the rows already in the air are still flying past.
+    if (this.kart.status !== before && this.kart.status !== 'DONE') this.emitSnapshot();
+
+    if (result === 'DONE') this.finishKartChase();
+  }
+
+  /**
+   * One row of pictures went past. Nothing the player did committed this — the
+   * row arriving did, which is the whole difference between this mini game and
+   * the other two.
+   */
+  private resolveGate(gate: KartGateResult): void {
+    if (gate.outcome === 'COLLECT') {
+      // Bonus points, never `award` — the chase answers no questions, so it
+      // must not move accuracy or the learner model.
+      this.score.bonus(KART_SCORE_PER_PICTURE);
+      this.audio.play('letter', this.kart.collected);
+      this.shake = Math.min(1, this.shake + 0.14);
+      // Ground made up: the camera surges and the monster is hauled a step in.
+      this.chaseLurch = 1;
+      this.bus.emit('impact', {
+        x: KART_LANE_X[gate.lane],
+        y: KART_BLOCK_Y,
+        z: STRIKE_Z,
+        color: COLORS.correct,
+        power: 1.1,
+      });
+    } else if (gate.outcome === 'CRASH') {
+      this.audio.play('wrong');
+      this.shake = 1;
+      // ...and ground lost: a jolt that throws the camera off its line.
+      this.chaseSlam = 1;
+      this.bus.emit('impact', {
+        x: KART_LANE_X[gate.lane],
+        y: KART_BLOCK_Y,
+        z: STRIKE_Z,
+        color: COLORS.wrong,
+        power: 1.7,
+      });
+    }
+
+    this.emitChase(gate.outcome, gate.word, gate.lane, 0);
+  }
+
+  private finishKartChase(): void {
+    const caught = this.kart.caught;
+    const damage = chaseDamage(this.kart.collected, caught);
+
+    // Announced while the chase is still readable, then cleared — and the
+    // clearing is announced too. Without that second event the scene keeps
+    // rendering the block list it last mirrored: those objects are no longer
+    // ticked by anyone, and a row still `INCOMING` when the chase ended has no
+    // fade to run, so it hangs in the tunnel through the next question.
+    this.emitChase(caught ? 'CAUGHT' : 'ESCAPED', null, null, damage);
+    this.kart.reset();
+    this.emitChase('END', null, null, damage);
+
+    if (damage > 0) {
+      // Running it down is a ram, not a punch — but it spends the same damage,
+      // impact and slow-motion machinery the special attack does.
+      this.strikeMonster(damage, true, null, caught ? 1.9 : 1.1);
+      this.specialBlast = caught ? 1 : 0.45;
+      this.shake = 1;
+      this.chaseLurch = 1;
+      if (caught) {
+        this.slowMoRemaining = SPECIAL_SLOWMO_SECONDS;
+        this.audio.play('special');
+      }
+    }
+
+    if (!this.monster.alive) {
+      this.endGame('VICTORY');
+      return;
+    }
+    this.monster.settle(this.elapsed);
+    this.resumeAnswering(RESOLVE_DELAY);
+  }
+
+  private emitChase(
+    type: GameEvents['kartChase']['type'],
+    word: string | null,
+    lane: number | null,
+    damage: number,
+  ): void {
+    this.bus.emit('kartChase', {
+      type,
+      topic: this.kart.topic,
+      word,
+      lane,
+      collected: this.kart.collected,
+      gap: this.kart.gap,
+      damage,
+    });
     this.emitSnapshot();
   }
 
@@ -1284,6 +1520,7 @@ export class GameManager {
       coach: this.coach,
       combat: this.getCombat(),
       wordConnect: this.wordConnect.snapshot(),
+      kartChase: this.kart.snapshot(),
       review: this.review,
     };
   }
@@ -1303,6 +1540,9 @@ export class GameManager {
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
+/** Frame-rate independent exponential approach. */
+const damp = (current: number, target: number, lambda: number, dt: number): number =>
+  current + (target - current) * (1 - Math.exp(-lambda * dt));
 
 /** Distance from the strike plane decides how clean the punch was. */
 function gradeHit(z: number): HitQuality {

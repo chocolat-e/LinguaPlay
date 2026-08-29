@@ -3,6 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
   COLORS,
+  KART_FLEE_DISTANCE,
+  KART_FLEE_WEAVE,
   MONSTER_CHARGE_SECONDS,
   MONSTER_STRIKE_SECONDS,
   MONSTER_Y,
@@ -50,6 +52,7 @@ export function Monster() {
 
     // Rest pose: a slow breathing drift, nudged by the music.
     let scale = 1 + Math.sin(t * 1.1) * 0.03 + game.beatPulse * 0.05;
+    let x = 0;
     let z = MONSTER_Z + Math.sin(t * 0.5) * 0.6;
     let y = MONSTER_Y + Math.sin(t * 0.8) * 0.3;
     let anger = 0;
@@ -123,7 +126,31 @@ export function Monster() {
       spin += blast * 14;
     }
 
-    node.position.set(0, y, z);
+    // Running for it. This is the chase made visible: `chaseGap` is 1 while the
+    // monster is away down the tunnel and 0 once the kart is alongside, so the
+    // same number that throws it into the distance when the chase opens hauls
+    // it back in, one lurch at a time, with every picture banked.
+    const flee = game.chaseRush;
+    if (flee > 0.002) {
+      const gap = game.chaseGap;
+      z -= gap * KART_FLEE_DISTANCE * flee;
+      // It swerves across the road as it runs, and the swerve dies out as the
+      // kart closes — a cornered thing stops being able to shake you off.
+      x += Math.sin(t * 2.3) * KART_FLEE_WEAVE * gap * flee;
+      // Lifted while it is still away down the road, so it stays in sight over
+      // the rows of pictures instead of hiding behind them.
+      y += gap * flee * 2.6 + Math.sin(t * 3.1) * 0.9 * gap * flee;
+      // Shrinking faster than perspective alone would, so it really reads as
+      // getting away rather than merely being far off.
+      scale *= 1 - gap * 0.3 * flee;
+      spin += flee * (2 + gap * 5);
+      // Panic rises as the kart gets close enough to ram it.
+      anger = Math.max(anger, flee * (1 - gap) * 0.85);
+      // And it flinches every time ground is made up on it.
+      flash = Math.max(flash, game.chaseLurch * 0.55);
+    }
+
+    node.position.set(x, y, z);
     node.scale.setScalar(Math.max(0.001, scale));
 
     // Colour carries the state: violet at rest, red winding up, white on hit.

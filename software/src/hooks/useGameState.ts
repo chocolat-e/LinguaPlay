@@ -11,4 +11,5 @@ export const useCoach = () => useGameStore((s) => s.snapshot.coach);
 export const useSettings = () => useGameStore((s) => s.settings);
 export const useCombat = () => useGameStore((s) => s.snapshot.combat);
 export const useWordConnect = () => useGameStore((s) => s.snapshot.wordConnect);
+export const useKartChase = () => useGameStore((s) => s.snapshot.kartChase);
 export const useReview = () => useGameStore((s) => s.snapshot.review);

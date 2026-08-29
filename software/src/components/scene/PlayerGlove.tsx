@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { COLORS, PLAYER_HAND } from '../../game/constants';
 import { game } from '../../game/instance';
 import { useGameEvent } from '../../hooks/useGameEvent';
-import { clamp01, easeOutCubic } from '../../utils/math';
+import { clamp01, easeOutCubic, lerp } from '../../utils/math';
 
 const SIDE = PLAYER_HAND === 'right' ? 1 : -1;
 
@@ -24,6 +24,14 @@ const LANE_AIM: Array<{ x: number; y: number }> = [
 
 /** Camera-local guard pose: fist up in front of the face. */
 const GUARD: { x: number; y: number; z: number } = { x: -0.75, y: 0.95, z: -0.55 };
+
+/**
+ * Camera-local driving pose: the fist down on the wheel rim, where
+ * `KartCockpit` draws it. There is no punching in the chase, so the hand has a
+ * job to do — and a fist left floating in a boxing stance while the world
+ * rushes past is the single most obvious way to break the illusion.
+ */
+const GRIP: { x: number; y: number; z: number } = { x: 0.62 * SIDE, y: -1.55, z: -2.2 };
 
 /**
  * The player's single fist, parented to the camera so it inherits screen shake.
@@ -84,28 +92,45 @@ export function PlayerGlove() {
     const reachX = reaching ? motion.handX * 0.85 : 0;
     const reachY = reaching ? motion.handY * 0.7 : 0;
 
+    // Driving takes the hand over entirely: it leaves the guard, drops to the
+    // wheel, and turns with it. A punch thrown mid-chase is a whiff anyway, so
+    // the lunge is faded out rather than fought with.
+    const drive = game.chaseRush;
+    const steer = game.input.motion.x;
+
     const [bx, by, bz] = REST;
     const bob = Math.sin(t * 2.1) * 0.035 + game.beatPulse * 0.05;
     const shiver = g * Math.sin(t * 26) * 0.012;
+    const rumble = Math.sin(t * 30) * drive * 0.02;
+    const swing = push * (1 - drive);
 
     node.position.set(
-      bx + reachX + aim.current.x * push + (GUARD.x - bx) * g,
-      by + bob + reachY + aim.current.y * push + (GUARD.y - by) * g + shiver,
-      bz - push * 1.5 + (GUARD.z - bz) * g,
+      lerp(
+        bx + reachX + aim.current.x * swing + (GUARD.x - bx) * g,
+        // Hands ride round the rim as the wheel turns.
+        GRIP.x + steer * 0.34,
+        drive,
+      ),
+      lerp(
+        by + bob + reachY + aim.current.y * swing + (GUARD.y - by) * g + shiver,
+        GRIP.y - Math.abs(steer) * 0.1 + rumble,
+        drive,
+      ),
+      lerp(bz - swing * 1.5 + (GUARD.z - bz) * g, GRIP.z, drive),
     );
     node.rotation.set(
-      -0.35 - push * 0.45 + g * 0.55 - reachY * 0.3,
-      -0.4 * SIDE + aim.current.x * push * 0.22 + reachX * 0.25,
-      -0.2 * SIDE - g * 0.5 * SIDE,
+      lerp(-0.35 - swing * 0.45 + g * 0.55 - reachY * 0.3, -1.15, drive),
+      lerp(-0.4 * SIDE + aim.current.x * swing * 0.22 + reachX * 0.25, 0, drive),
+      lerp(-0.2 * SIDE - g * 0.5 * SIDE, -steer * 1.15, drive),
     );
-    node.scale.setScalar(1 + push * 0.08 + g * 0.06);
+    node.scale.setScalar(1 + swing * 0.08 + g * 0.06 - drive * 0.12);
 
     const trail = node.children[1] as THREE.Mesh | undefined;
     if (trail) {
       const material = trail.material as THREE.MeshBasicMaterial;
-      material.opacity = push * 0.28;
+      material.opacity = swing * 0.28;
       // The cylinder is rotated onto Z, so its length lives on local Y.
-      trail.scale.set(1, 0.35 + push * 0.8, 1);
+      trail.scale.set(1, 0.35 + swing * 0.8, 1);
     }
   });
 

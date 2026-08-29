@@ -75,7 +75,8 @@ export type CombatPhase =
   | 'MONSTER_CHARGING'   // wind-up; the defence window is inside this
   | 'MONSTER_STRIKING'   // the blow has landed or been blocked
   | 'WORD_CONNECT'       // the earned mini game
-  | 'SPECIAL_ATTACK';    // the payoff from the mini game
+  | 'SPECIAL_ATTACK'     // the payoff from the mini game
+  | 'KART_CHASE';        // the wounded monster is running; drive it down
 
 export type MonsterPhase = 'IDLE' | 'HURT' | 'CHARGING' | 'STRIKING' | 'DEFEATED';
 
@@ -122,6 +123,52 @@ export interface WordConnectSnapshot {
   wordsCompleted: number;
   timeRemaining: number;
   status: 'PLAYING' | 'COMPLETE' | 'FAILED' | 'DONE';
+}
+
+/** What happened to one picture block once its row reached the player. */
+export type KartBlockState =
+  | 'INCOMING'
+  | 'COLLECTED'  // driven through, and it was on topic
+  | 'CRASHED'    // driven through, and it was not
+  | 'MISSED';    // in another lane; flew past
+
+export interface KartBlockRuntime {
+  id: number;
+  /** Blocks of one row share this, and resolve together. */
+  waveId: number;
+  /** 0..2 → LEFT/CENTER/RIGHT, the same three lanes the answers use. */
+  lane: number;
+  emoji: string;
+  word: string;
+  /**
+   * Whether this picture belongs to the chase's topic. Deliberately never
+   * shown before the row resolves — knowing which is which *is* the game.
+   */
+  onTopic: boolean;
+  z: number;
+  state: KartBlockState;
+  /** Simulation time the state last changed, for the scene's animation. */
+  stateTime: number;
+}
+
+export type KartChaseStatus =
+  | 'DRIVING'
+  | 'CAUGHT'    // the gap closed
+  | 'ESCAPED'   // the rows ran out first
+  | 'DONE';
+
+export interface KartChaseSnapshot {
+  active: boolean;
+  /** The topic to drive through, e.g. "ANIMALS". */
+  topic: string;
+  collected: number;
+  crashed: number;
+  /** Rows resolved so far, out of the whole chase. */
+  waveIndex: number;
+  totalWaves: number;
+  /** Distance still to close, 1 = far behind, 0 = caught. Drives the bar. */
+  gap: number;
+  status: KartChaseStatus;
 }
 
 /** How cleanly the punch landed relative to the strike plane. */

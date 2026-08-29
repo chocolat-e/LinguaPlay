@@ -12,9 +12,13 @@ export function QuestionDisplay() {
   const settings = useSettings();
   const combat = useCombat();
 
-  // The mini game is a combat move, not a question — clear the top of the
-  // screen so the letter above the player is actually visible.
-  const answering = combat.phase !== 'WORD_CONNECT' && combat.phase !== 'SPECIAL_ATTACK';
+  // The mini games are combat moves, not questions — clear the top of the
+  // screen so the letters above the player, and the incoming rows of pictures,
+  // are actually visible.
+  const answering =
+    combat.phase !== 'WORD_CONNECT' &&
+    combat.phase !== 'SPECIAL_ATTACK' &&
+    combat.phase !== 'KART_CHASE';
   if (!question || !answering) return null;
 
   const window = questionWindowSeconds(question.difficulty, settings.speed);

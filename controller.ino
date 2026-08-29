@@ -41,6 +41,9 @@ float gx, gy, gz;
 float accPower = 0;
 float punchPower = 0;
 
+// Steering for the kart chase: -1 tilted fully left, 0 level, +1 fully right.
+float tilt = 0;
+
 int joyX = 0;
 int joyY = 0;
 int buttonState = HIGH;
@@ -59,6 +62,16 @@ const int showDuration = 800;
 const int apiInterval = 100;
 
 const float punchThreshold = 1.5;
+
+// Radians of roll that count as full lock. About 35 degrees, so the kart can be
+// steered from lane to lane with the wrist rather than the whole arm.
+const float tiltRange = 0.6;
+// Below this the board is treated as level, so a hand that is never perfectly
+// still does not drift the kart out of the centre lane.
+const float tiltDeadzone = 0.08;
+// Exponential smoothing. The accelerometer is noisy, and a jittery steering
+// axis reads as a broken controller rather than a twitchy one.
+const float tiltSmoothing = 0.25;
 
 void writeMPU(byte reg, byte data) {
   Wire.beginTransmission(MPU_ADDR);
@@ -138,6 +151,28 @@ void readMPU() {
   gx = gyroX / 131.0;
   gy = gyroY / 131.0;
   gz = gyroZ / 131.0;
+
+  updateTilt();
+}
+
+// Roll angle straight out of gravity.
+//
+// Deliberately the accelerometer and not the gyro: the gyro reports how fast
+// the board is turning, which has to be integrated to get an angle and drifts
+// as soon as it is. atan2 of two gravity components is an absolute angle that
+// never drifts, which is what a steering axis needs — let go of the wheel and
+// the kart really is back in the centre lane.
+//
+// Swap ay/az below if the board is mounted on a different face.
+void updateTilt() {
+  float roll = atan2(ay, az);
+  float target = roll / tiltRange;
+
+  if (target > 1.0) target = 1.0;
+  if (target < -1.0) target = -1.0;
+  if (fabs(target) < tiltDeadzone) target = 0;
+
+  tilt = tilt + (target - tilt) * tiltSmoothing;
 }
 
 void readInputs() {
@@ -204,7 +239,8 @@ String makeJson() {
   json += "\"x\":" + String(joyX) + ",";
   json += "\"y\":" + String(joyY) + ",";
   json += "\"punchPower\":" + String(punchPower, 2) + ",";
-  json += "\"accPower\":" + String(accPower, 2);
+  json += "\"accPower\":" + String(accPower, 2) + ",";
+  json += "\"tilt\":" + String(tilt, 3);
 
   json += "}";
 
@@ -254,6 +290,12 @@ void updateOLED() {
   display.setCursor(0, 40);
   display.print("Joy: ");
   display.print(joyDir);
+
+  // Live steering readout, so tiltRange can be calibrated against the board's
+  // actual mounting without a serial monitor.
+  display.setCursor(74, 40);
+  display.print("T:");
+  display.print(tilt, 2);
 
   display.setCursor(0, 50);
   display.print("X:");

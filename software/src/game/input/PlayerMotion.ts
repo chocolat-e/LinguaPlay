@@ -137,6 +137,29 @@ export class PlayerMotion {
     return null;
   }
 
+  /**
+   * The lane the kart is in during the chase. Unlike `stance` this is never
+   * null: a kart is always physically on some part of the road, and a row of
+   * pictures arriving has to resolve against a lane whether or not the player
+   * has settled into one.
+   *
+   * Answering is the opposite case on purpose — there the position *is* the
+   * answer, so a punch thrown from the gap between two lanes has to stay a
+   * miss rather than being rounded into a guess at the nearer one.
+   */
+  get lane(): Stance {
+    let nearest: Stance = 0;
+    let best = Infinity;
+    for (let lane = 0; lane < STANCE_X.length; lane += 1) {
+      const distance = Math.abs(this.x - STANCE_X[lane]);
+      if (distance < best) {
+        best = distance;
+        nearest = lane as Stance;
+      }
+    }
+    return nearest;
+  }
+
   /** How solidly the player is in the current lane, 0..1. Drives the HUD. */
   get stanceStrength(): number {
     const lane = this.stance;
