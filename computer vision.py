@@ -1,50 +1,6 @@
-"""
-A/B point tracker for the boxing language-learning project.
-
-Purpose
--------
-A = chest center
-B = right wrist
-
-Only A and B are drawn on the video.
-Shoulder/elbow landmarks, arm lines, punch-direction text, and body-centered
-XY axes are NOT displayed.
-
-Coordinate system
------------------
-The DISPLAY WINDOW bottom-left corner is fixed at (0, 0).
-
-    +Y
-     ^
-     |
-     |
-(0,0) --------> +X
-
-Coordinates are display-pixel coordinates:
-    X increases to the right.
-    Y increases upward.
-
-The webcam is mirrored by default so movement on screen feels natural.
-MediaPipe still analyzes the original frame, so RIGHT_WRIST remains the
-player's anatomical right wrist.
-
-Keyboard
---------
-Q = quit
-R = reset point smoothing
-
-Examples
---------
-python boxing_cv_AB_window_xy.py
-python boxing_cv_AB_window_xy.py --camera 1
-python boxing_cv_AB_window_xy.py --no-mirror
-python boxing_cv_AB_window_xy.py --record
-"""
-
 from __future__ import annotations
 
 import argparse
-import csv
 import platform
 import time
 from pathlib import Path
@@ -56,51 +12,37 @@ import numpy as np
 
 import config
 
-
-# ---------------------------------------------------------------------
-# MediaPipe landmark indices
-# ---------------------------------------------------------------------
-
+# MediaPipe Pose landmarks
 LEFT_SHOULDER = 11
 RIGHT_SHOULDER = 12
 RIGHT_WRIST = 16
 
+# Smoothing
+CHEST_ALPHA = 0.32
+WRIST_ALPHA = 0.55
 
-# ---------------------------------------------------------------------
-# Tracking / display settings
-# ---------------------------------------------------------------------
+# Punch tuning: distance is normalized by shoulder width.
+READY_DISTANCE = 1.20       # B must first move outside the punch circle
+PUNCH_DISTANCE = 0.95       # circular punch-zone radius in shoulder widths
+MIN_APPROACH_SPEED = 0.45   # normalized-distance decrease per second
+PUNCH_COOLDOWN_S = 0.65
+PUNCH_TEXT_DURATION_S = 0.45
 
-# A smaller alpha = smoother but slower.
-# Chest should be stable, while wrist should react faster to punches.
-CHEST_SMOOTHING_ALPHA = 0.30
-WRIST_SMOOTHING_ALPHA = 0.55
+# Hand direction: B must be this far from A before UP/DOWN/LEFT/RIGHT is shown.
+HAND_DIRECTION_MIN_DISTANCE = 0.55
 
-POINT_RADIUS = 9
-ORIGIN_AXIS_LENGTH = 85
-
-
-# ---------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------
 
 class PointEMA:
-    """Exponential moving average for a 2D point."""
-
     def __init__(self, alpha: float):
         self.alpha = float(alpha)
         self.value: Optional[np.ndarray] = None
 
     def update(self, point: np.ndarray) -> np.ndarray:
         point = np.asarray(point, dtype=np.float32)
-
         if self.value is None:
             self.value = point.copy()
         else:
-            self.value = (
-                self.alpha * point
-                + (1.0 - self.alpha) * self.value
-            )
-
+            self.value = self.alpha * point + (1.0 - self.alpha) * self.value
         return self.value.copy()
 
     def reset(self):
@@ -108,739 +50,566 @@ class PointEMA:
 
 
 class ScalarEMA:
-    """EMA used only for a smoother FPS display."""
-
     def __init__(self, alpha: float):
         self.alpha = float(alpha)
         self.value: Optional[float] = None
 
     def update(self, value: float) -> float:
         value = float(value)
-
         if self.value is None:
             self.value = value
         else:
-            self.value = (
-                self.alpha * value
-                + (1.0 - self.alpha) * self.value
-            )
-
+            self.value = self.alpha * value + (1.0 - self.alpha) * self.value
         return float(self.value)
 
 
-def visible(lm) -> bool:
-    """Check MediaPipe visibility against project config."""
-    visibility = getattr(lm, "visibility", 1.0)
+class DistancePunchDetector:
+    """READY -> PUNCH detector based on A-B 2D distance."""
 
-    if visibility is None:
-        return True
+    def __init__(self):
+        self.reset()
 
-    return float(visibility) >= config.MIN_VISIBILITY
+    def reset(self):
+        self.armed = False
+        self.last_t: Optional[float] = None
+        self.last_distance: Optional[float] = None
+        self.last_punch_t = -1e9
+        self.state = "WAITING"
+
+    def update(self, t: float, distance_norm: float) -> tuple[bool, float]:
+        approach_speed = 0.0
+
+        if self.last_t is not None and self.last_distance is not None:
+            dt = t - self.last_t
+            if 0.001 < dt < 0.30:
+                # Positive = B is moving closer to A.
+                approach_speed = (self.last_distance - distance_norm) / dt
+
+        # Arm only after fist has moved away from chest.
+        if distance_norm >= READY_DISTANCE:
+            self.armed = True
+            self.state = "READY"
+
+        punch = False
+        cooldown_ok = (t - self.last_punch_t) >= PUNCH_COOLDOWN_S
+
+        if (
+            self.armed
+            and cooldown_ok
+            and distance_norm <= PUNCH_DISTANCE
+            and approach_speed >= MIN_APPROACH_SPEED
+        ):
+            punch = True
+            self.armed = False
+            self.last_punch_t = t
+            self.state = "PUNCH"
+        elif not self.armed:
+            self.state = "WAITING"
+
+        self.last_t = t
+        self.last_distance = distance_norm
+        return punch, approach_speed
 
 
 def open_camera(index: int):
-    """Open camera with DirectShow first on Windows."""
     if platform.system() == "Windows":
         cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-
         if cap.isOpened():
             return cap
-
         cap.release()
-
     return cv2.VideoCapture(index)
 
 
-def landmark_to_display_pixel(
-    lm,
-    width: int,
-    height: int,
-    mirror: bool,
-) -> np.ndarray:
-    """
-    Convert MediaPipe normalized coordinates to DISPLAY pixel coordinates.
-
-    OpenCV display pixel coordinates still use:
-        top-left = (0, 0)
-        +x right
-        +y down
-    """
-    x_norm = 1.0 - float(lm.x) if mirror else float(lm.x)
-    y_norm = float(lm.y)
-
-    return np.array(
-        [
-            x_norm * width,
-            y_norm * height,
-        ],
-        dtype=np.float32,
-    )
+def visible(lm) -> bool:
+    v = getattr(lm, "visibility", 1.0)
+    if v is None:
+        return True
+    return float(v) >= config.MIN_VISIBILITY
 
 
-def calculate_chest_center(
-    left_shoulder: np.ndarray,
-    right_shoulder: np.ndarray,
-) -> np.ndarray:
-    """
-    Estimate chest/sternum center from the two shoulders.
-
-    Step 1: midpoint between shoulders.
-    Step 2: move slightly downward by 28% of shoulder width.
-
-    This gives a practical chest point while only requiring the upper body.
-    """
-    shoulder_mid = (
-        left_shoulder + right_shoulder
-    ) * 0.5
-
-    shoulder_width = float(
-        np.linalg.norm(
-            left_shoulder - right_shoulder
-        )
-    )
-
-    chest = shoulder_mid.copy()
-
-    # Display coordinate +Y is downward.
-    chest[1] += 0.28 * shoulder_width
-
-    return chest
+def landmark_to_display_pixel(lm, width: int, height: int, mirror: bool) -> np.ndarray:
+    x = float(lm.x)
+    y = float(lm.y)
+    if mirror:
+        x = 1.0 - x
+    return np.array([x * width, y * height], dtype=np.float32)
 
 
-def display_to_window_xy(
-    display_point: np.ndarray,
-    width: int,
-    height: int,
-) -> tuple[float, float]:
-    """
-    Convert OpenCV DISPLAY coordinates to requested window coordinates.
-
-    OpenCV:
-        origin = top-left
-        +Y = down
-
-    Requested:
-        origin = bottom-left
-        +Y = up
-    """
-    x = float(display_point[0])
-    y = float(height) - float(display_point[1])
-
-    x = max(0.0, min(float(width), x))
-    y = max(0.0, min(float(height), y))
-
+def to_bottom_left_xy(point: np.ndarray, width: int, height: int) -> tuple[float, float]:
+    """Bottom-left = (0,0), +X right, +Y up."""
+    x = float(np.clip(point[0], 0, width))
+    y = float(np.clip(height - point[1], 0, height))
     return x, y
 
 
-def draw_window_origin(frame):
+def relative_to_chest_xy(chest: np.ndarray, wrist: np.ndarray) -> tuple[float, float]:
+    """Moving coordinate system: chest A=(0,0), +X right, +Y up."""
+    dx = float(wrist[0] - chest[0])
+    dy = float(chest[1] - wrist[1])  # invert OpenCV Y so up is positive
+    return dx, dy
+
+
+def chest_center(left_shoulder: np.ndarray, right_shoulder: np.ndarray) -> np.ndarray:
+    """Estimate chest A from shoulder midpoint, shifted slightly downward."""
+    mid = (left_shoulder + right_shoulder) * 0.5
+    shoulder_width = float(np.linalg.norm(left_shoulder - right_shoulder))
+    chest = mid.copy()
+    chest[1] += 0.28 * shoulder_width
+    return chest
+
+
+def zone_from_x(x: float, width: int) -> str:
+    if x < width / 3.0:
+        return "LEFT"
+    if x > width * 2.0 / 3.0:
+        return "RIGHT"
+    return "CENTER"
+
+
+def hand_direction(dx: float, dy: float, distance_norm: float) -> Optional[str]:
+    """Classify B relative to moving chest origin into 4 directional sectors."""
+    if distance_norm < HAND_DIRECTION_MIN_DISTANCE:
+        return None
+
+    if abs(dx) >= abs(dy):
+        return "RIGHT" if dx > 0 else "LEFT"
+
+    return "UP" if dy > 0 else "DOWN"
+
+
+def draw_axes(frame):
+    h, w = frame.shape[:2]
+    origin = (0, h - 1)
+    color = (220, 220, 220)
+    cv2.arrowedLine(frame, origin, (min(110, w - 1), h - 1), color, 2, cv2.LINE_AA, tipLength=0.10)
+    cv2.arrowedLine(frame, origin, (0, max(0, h - 111)), color, 2, cv2.LINE_AA, tipLength=0.10)
+    cv2.putText(frame, "(0,0)", (8, h - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+    cv2.putText(frame, "+X", (118, h - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+    cv2.putText(frame, "+Y", (8, max(25, h - 120)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+
+
+def draw_moving_chest_axes(frame, chest: np.ndarray):
     """
-    Draw only a small coordinate reference at the WINDOW bottom-left.
-    This is not a body tracking point.
+    Second XY axis that moves with the chest.
+    Chest A is always (0,0). Diagonal guides create UP/DOWN/LEFT/RIGHT sectors.
     """
     h, w = frame.shape[:2]
+    cx = int(round(float(chest[0])))
+    cy = int(round(float(chest[1])))
 
-    # OpenCV screen location corresponding to requested (0,0).
-    origin = (0, h - 1)
+    axis_color = (0, 255, 255)
+    guide_color = (150, 150, 150)
 
-    axis_color = (210, 210, 210)
+    # Moving X/Y axes through chest.
+    cv2.line(frame, (0, cy), (w - 1, cy), axis_color, 1, cv2.LINE_AA)
+    cv2.line(frame, (cx, 0), (cx, h - 1), axis_color, 1, cv2.LINE_AA)
 
-    # +X axis
-    cv2.arrowedLine(
-        frame,
-        origin,
-        (min(w - 1, ORIGIN_AXIS_LENGTH), h - 1),
-        axis_color,
-        2,
-        cv2.LINE_AA,
-        tipLength=0.12,
-    )
+    cv2.arrowedLine(frame, (cx, cy), (min(w - 1, cx + 100), cy),
+                    axis_color, 2, cv2.LINE_AA, tipLength=0.10)
+    cv2.arrowedLine(frame, (cx, cy), (cx, max(0, cy - 100)),
+                    axis_color, 2, cv2.LINE_AA, tipLength=0.10)
 
-    # +Y axis
-    cv2.arrowedLine(
-        frame,
-        origin,
-        (0, max(0, h - 1 - ORIGIN_AXIS_LENGTH)),
-        axis_color,
-        2,
-        cv2.LINE_AA,
-        tipLength=0.12,
-    )
+    # 45-degree boundaries for 4 directional sectors.
+    length = max(w, h) * 2
+    cv2.line(frame, (cx - length, cy - length), (cx + length, cy + length),
+             guide_color, 1, cv2.LINE_AA)
+    cv2.line(frame, (cx - length, cy + length), (cx + length, cy - length),
+             guide_color, 1, cv2.LINE_AA)
 
-    cv2.putText(
-        frame,
-        "(0,0)",
-        (8, h - 12),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.52,
-        axis_color,
-        2,
-        cv2.LINE_AA,
-    )
+    cv2.putText(frame, "A (0,0)", (cx + 12, cy + 22),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.55, axis_color, 2, cv2.LINE_AA)
 
-    cv2.putText(
-        frame,
-        "+X",
-        (ORIGIN_AXIS_LENGTH + 8, h - 12),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.52,
-        axis_color,
-        2,
-        cv2.LINE_AA,
-    )
-
-    cv2.putText(
-        frame,
-        "+Y",
-        (8, max(25, h - ORIGIN_AXIS_LENGTH - 8)),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.52,
-        axis_color,
-        2,
-        cv2.LINE_AA,
-    )
+    # Direction labels move with chest.
+    cv2.putText(frame, "UP", (cx - 20, max(24, cy - 125)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255,255,255), 2, cv2.LINE_AA)
+    cv2.putText(frame, "DOWN", (cx - 35, min(h - 15, cy + 135)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255,255,255), 2, cv2.LINE_AA)
+    cv2.putText(frame, "LEFT", (max(5, cx - 145), cy + 5),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255,255,255), 2, cv2.LINE_AA)
+    cv2.putText(frame, "RIGHT", (min(w - 90, cx + 85), cy + 5),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255,255,255), 2, cv2.LINE_AA)
 
 
-def draw_tracking_point(
+
+def draw_punch_circle(
     frame,
-    point: np.ndarray,
-    label: str,
-    xy: tuple[float, float],
+    chest: np.ndarray,
+    shoulder_width: float,
+    wrist: Optional[np.ndarray],
 ):
     """
-    Draw one tracked point and its window coordinate.
-    Only A and B use this function.
+    Draw the circular PUNCH detection zone.
+
+    Circle center:
+        A = chest
+
+    Circle radius:
+        shoulder_width * PUNCH_DISTANCE
+
+    If B is inside the circle, it is inside the punch-detection region.
+    The actual PUNCH event still requires:
+        READY -> moving toward A -> entering this circle.
     """
     h, w = frame.shape[:2]
 
-    px = int(round(float(point[0])))
-    py = int(round(float(point[1])))
+    cx = int(round(float(chest[0])))
+    cy = int(round(float(chest[1])))
 
-    px = max(0, min(w - 1, px))
-    py = max(0, min(h - 1, py))
+    radius = int(
+        round(
+            max(
+                10.0,
+                shoulder_width * PUNCH_DISTANCE,
+            )
+        )
+    )
 
+    # Clamp radius to avoid absurd drawing values.
+    radius = min(
+        radius,
+        max(w, h),
+    )
+
+    # Circle boundary.
     cv2.circle(
         frame,
-        (px, py),
-        POINT_RADIUS,
-        (0, 255, 255),
-        -1,
-        cv2.LINE_AA,
-    )
-
-    text = (
-        f"{label} "
-        f"({xy[0]:.0f}, {xy[1]:.0f})"
-    )
-
-    # Keep text inside the window.
-    tx = min(max(px + 14, 8), max(8, w - 220))
-    ty = min(max(py - 14, 25), h - 10)
-
-    cv2.putText(
-        frame,
-        text,
-        (tx, ty),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.62,
-        (0, 255, 255),
+        (cx, cy),
+        radius,
+        (0, 165, 255),
         2,
         cv2.LINE_AA,
     )
 
+    # Label.
+    label_y = max(
+        24,
+        cy - radius - 8,
+    )
 
-def draw_status(
-    frame,
-    pose_ok: bool,
-    a_xy: Optional[tuple[float, float]],
-    b_xy: Optional[tuple[float, float]],
-    fps: float,
-    mirror: bool,
-):
-    """Minimal status panel. No punch direction / shoulder / elbow data."""
-    lines = [
-        f"Pose: {'OK' if pose_ok else 'NOT FOUND'}",
-        f"Mirror: {'ON' if mirror else 'OFF'}",
-        (
-            f"A chest: ({a_xy[0]:.0f}, {a_xy[1]:.0f})"
-            if a_xy is not None
-            else "A chest: --"
-        ),
-        (
-            f"B right wrist: ({b_xy[0]:.0f}, {b_xy[1]:.0f})"
-            if b_xy is not None
-            else "B right wrist: --"
-        ),
-        f"FPS: {fps:.1f}",
-        "Q quit | R reset smoothing",
-    ]
+    cv2.putText(
+        frame,
+        "PUNCH ZONE",
+        (max(5, cx - 58), label_y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.48,
+        (0, 165, 255),
+        2,
+        cv2.LINE_AA,
+    )
 
-    y = 28
+    # Optional small indicator showing whether B is currently inside.
+    if wrist is not None:
+        distance_px = float(
+            np.linalg.norm(
+                wrist - chest
+            )
+        )
 
-    for line in lines:
+        inside = (
+            distance_px <= radius
+        )
+
+        status = (
+            "B INSIDE"
+            if inside
+            else "B OUTSIDE"
+        )
+
         cv2.putText(
             frame,
-            line,
-            (18, y),
+            status,
+            (
+                max(5, cx - 48),
+                min(h - 10, cy + radius + 22),
+            ),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.56,
-            (255, 255, 255),
+            0.45,
+            (0, 165, 255),
             2,
             cv2.LINE_AA,
         )
-        y += 26
 
 
-def make_csv():
-    """Optional recording of A/B window coordinates."""
-    config.DATA_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+def draw_zones(frame, active_zone: Optional[str]):
+    h, w = frame.shape[:2]
+    x1 = int(w / 3)
+    x2 = int(2 * w / 3)
+    cv2.line(frame, (x1, 0), (x1, h), (130, 130, 130), 2, cv2.LINE_AA)
+    cv2.line(frame, (x2, 0), (x2, h), (130, 130, 130), 2, cv2.LINE_AA)
 
-    path = (
-        config.DATA_DIR
-        / f"AB_positions_{time.strftime('%Y%m%d_%H%M%S')}.csv"
-    )
-
-    f = path.open(
-        "w",
-        newline="",
-        encoding="utf-8-sig",
-    )
-
-    writer = csv.writer(f)
-
-    writer.writerow(
-        [
-            "time_s",
-            "A_chest_x",
-            "A_chest_y",
-            "B_wrist_x",
-            "B_wrist_y",
-            "pose_ok",
-        ]
-    )
-
-    return path, f, writer
+    labels = [("LEFT", int(w * 0.11)), ("CENTER", int(w * 0.43)), ("RIGHT", int(w * 0.77))]
+    for label, x in labels:
+        thickness = 4 if label == active_zone else 2
+        cv2.putText(frame, label, (x, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                    (255, 255, 255), thickness, cv2.LINE_AA)
 
 
-# ---------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------
+def draw_ab(frame, a: np.ndarray, b: Optional[np.ndarray], a_xy, b_xy, relative_xy):
+    ax, ay = int(round(a[0])), int(round(a[1]))
+    cv2.circle(frame, (ax, ay), 10, (0, 255, 255), -1, cv2.LINE_AA)
+    cv2.putText(frame, f"A Body abs=({a_xy[0]:.0f}, {a_xy[1]:.0f})",
+                (ax + 14, max(25, ay - 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.56,
+                (0, 255, 255), 2, cv2.LINE_AA)
+
+    if b is None or b_xy is None or relative_xy is None:
+        return
+
+    bx, by = int(round(b[0])), int(round(b[1]))
+    cv2.circle(frame, (bx, by), 9, (0, 255, 0), -1, cv2.LINE_AA)
+    cv2.putText(frame,
+                f"B abs=({b_xy[0]:.0f},{b_xy[1]:.0f}) rel=({relative_xy[0]:.0f},{relative_xy[1]:.0f})",
+                (bx + 14, max(25, by - 12)), cv2.FONT_HERSHEY_SIMPLEX, 0.50,
+                (0, 255, 0), 2, cv2.LINE_AA)
+    cv2.line(frame, (ax, ay), (bx, by), (255, 255, 255), 2, cv2.LINE_AA)
+
+
+def draw_main_text(frame, body_zone: Optional[str], direction: Optional[str], punch_visible: bool):
+    h, w = frame.shape[:2]
+
+    if body_zone:
+        text = f"BODY: {body_zone}"
+        size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.15, 4)[0]
+        cv2.putText(frame, text, ((w - size[0]) // 2, 52),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.15, (255, 255, 255), 4, cv2.LINE_AA)
+
+    if direction:
+        text = f"HAND: {direction}"
+        size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.15, 4)[0]
+        cv2.putText(frame, text, ((w - size[0]) // 2, 100),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.15, (0, 255, 0), 4, cv2.LINE_AA)
+
+    if punch_visible:
+        text = "PUNCH"
+        size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.55, 5)[0]
+        cv2.putText(frame, text, ((w - size[0]) // 2, 155),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.55, (0, 0, 255), 5, cv2.LINE_AA)
+
+
+def draw_debug(frame, pose_ok, fist_ok, body_zone, direction, relative_xy,
+               distance_norm, approach_speed, state, fps):
+    lines = [
+        f"Body pose: {'OK' if pose_ok else 'NOT FOUND'}",
+        f"Right fist: {'OK' if fist_ok else 'NOT FOUND'}",
+        f"Body zone: {body_zone if body_zone else '--'}",
+        f"Hand direction: {direction if direction else '--'}",
+        (f"B rel A: ({relative_xy[0]:.0f}, {relative_xy[1]:.0f})"
+         if relative_xy is not None else "B rel A: --"),
+        f"A-B distance: {distance_norm:.2f}" if distance_norm is not None else "A-B distance: --",
+        f"Approach speed: {approach_speed:.2f}",
+        f"Punch state: {state}",
+        f"FPS: {fps:.1f}",
+        "Q quit | R reset",
+    ]
+
+    y = 25
+    for line in lines:
+        cv2.putText(frame, line, (16, y), cv2.FONT_HERSHEY_SIMPLEX, 0.47,
+                    (255, 255, 255), 2, cv2.LINE_AA)
+        y += 22
+
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description=(
-            "Track A=chest and B=right wrist "
-            "using bottom-left window origin."
-        )
-    )
-
-    parser.add_argument(
-        "--camera",
-        type=int,
-        default=config.CAMERA_INDEX,
-    )
-
-    parser.add_argument(
-        "--no-mirror",
-        action="store_true",
-        help="Disable mirror display. Mirror is ON by default.",
-    )
-
-    parser.add_argument(
-        "--record",
-        action="store_true",
-        help="Record A/B coordinates to CSV.",
-    )
-
+    parser = argparse.ArgumentParser(description="LinguaPlay body zone + A/B punch + chest-centered 4-direction detector")
+    parser.add_argument("--camera", type=int, default=config.CAMERA_INDEX)
+    parser.add_argument("--no-mirror", action="store_true")
     return parser.parse_args()
 
 
-# ---------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------
-
 def main():
     args = parse_args()
-
     mirror = not args.no_mirror
 
     model_path = Path(config.MODEL_PATH)
-
-    if (
-        not model_path.exists()
-        or not model_path.is_file()
-        or model_path.stat().st_size < 1_000_000
-    ):
-        print(
-            "ERROR: MediaPipe model is missing or incomplete:"
-        )
+    if not model_path.exists() or model_path.stat().st_size < 1_000_000:
+        print("ERROR: MediaPipe model missing or incomplete:")
         print(model_path)
-        print("Run FIX_MODEL.bat and try again.")
         return
 
-    # Read into memory to avoid Unicode path issues on Windows.
     try:
         model_bytes = model_path.read_bytes()
     except OSError as exc:
-        print("ERROR: Cannot read MediaPipe model.")
+        print("ERROR: Cannot read MediaPipe model:")
         print(exc)
         return
 
     cap = open_camera(args.camera)
-
     if not cap.isOpened():
-        print(
-            f"ERROR: Cannot open camera index {args.camera}."
-        )
-        print(
-            "Try: python boxing_cv_AB_window_xy.py --camera 1"
-        )
+        print(f"ERROR: Cannot open camera index {args.camera}.")
         return
 
-    cap.set(
-        cv2.CAP_PROP_FRAME_WIDTH,
-        config.FRAME_WIDTH,
-    )
-    cap.set(
-        cv2.CAP_PROP_FRAME_HEIGHT,
-        config.FRAME_HEIGHT,
-    )
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
 
-    BaseOptions = mp.tasks.BaseOptions
-    PoseLandmarker = mp.tasks.vision.PoseLandmarker
-    PoseLandmarkerOptions = (
-        mp.tasks.vision.PoseLandmarkerOptions
-    )
-    RunningMode = mp.tasks.vision.RunningMode
-
-    options = PoseLandmarkerOptions(
-        base_options=BaseOptions(
-            model_asset_buffer=model_bytes
-        ),
-        running_mode=RunningMode.VIDEO,
+    options = mp.tasks.vision.PoseLandmarkerOptions(
+        base_options=mp.tasks.BaseOptions(model_asset_buffer=model_bytes),
+        running_mode=mp.tasks.vision.RunningMode.VIDEO,
         num_poses=1,
-        min_pose_detection_confidence=(
-            config.MIN_POSE_DETECTION_CONFIDENCE
-        ),
-        min_pose_presence_confidence=(
-            config.MIN_POSE_PRESENCE_CONFIDENCE
-        ),
-        min_tracking_confidence=(
-            config.MIN_TRACKING_CONFIDENCE
-        ),
+        min_pose_detection_confidence=config.MIN_POSE_DETECTION_CONFIDENCE,
+        min_pose_presence_confidence=config.MIN_POSE_PRESENCE_CONFIDENCE,
+        min_tracking_confidence=config.MIN_TRACKING_CONFIDENCE,
         output_segmentation_masks=False,
     )
 
-    chest_filter = PointEMA(
-        CHEST_SMOOTHING_ALPHA
-    )
-
-    wrist_filter = PointEMA(
-        WRIST_SMOOTHING_ALPHA
-    )
-
+    chest_filter = PointEMA(CHEST_ALPHA)
+    wrist_filter = PointEMA(WRIST_ALPHA)
     fps_filter = ScalarEMA(0.15)
-
-    csv_path = None
-    csv_file = None
-    csv_writer = None
-
-    if args.record:
-        (
-            csv_path,
-            csv_file,
-            csv_writer,
-        ) = make_csv()
+    punch_detector = DistancePunchDetector()
 
     start_t = time.perf_counter()
     last_loop_t = start_t
     last_timestamp_ms = -1
+    last_punch_screen_t = -1e9
 
-    print("=== A/B Window Coordinate Tracker ===")
+    print("=== LinguaPlay 3-Function CV ===")
     print("A = chest center")
-    print("B = anatomical RIGHT wrist")
-    print("Window bottom-left = (0,0)")
-    print("+X = right")
-    print("+Y = up")
-    print(
-        f"Mirror: {'ON' if mirror else 'OFF'}"
-    )
-    print(
-        f"Camera: {args.camera}"
-    )
-
-    if csv_path is not None:
-        print(
-            f"CSV recording: {csv_path}"
-        )
-
-    print(
-        "Stand far enough back that both shoulders "
-        "and your right wrist are visible."
-    )
-    print(
-        "Press Q to quit. Press R to reset smoothing."
-    )
+    print("B = anatomical right wrist/fist")
+    print("Bottom-left = (0,0), +X right, +Y up")
+    print("Body zones = LEFT | CENTER | RIGHT")
+    print(f"READY distance >= {READY_DISTANCE:.2f}")
+    print(f"PUNCH circle radius = {PUNCH_DISTANCE:.2f} shoulder widths")
+    print(f"PUNCH text duration = {PUNCH_TEXT_DURATION_S:.2f} s")
+    print("Hand direction = UP / DOWN / LEFT / RIGHT around moving chest origin")
 
     try:
-        with PoseLandmarker.create_from_options(
-            options
-        ) as landmarker:
-
+        with mp.tasks.vision.PoseLandmarker.create_from_options(options) as landmarker:
             while True:
                 ok, raw_frame = cap.read()
-
-                if (
-                    not ok
-                    or raw_frame is None
-                ):
-                    print(
-                        "ERROR: Camera frame could not be read."
-                    )
+                if not ok or raw_frame is None:
+                    print("ERROR: Cannot read camera frame.")
                     break
 
                 now = time.perf_counter()
-
-                dt = max(
-                    now - last_loop_t,
-                    1e-6,
-                )
-
-                fps = fps_filter.update(
-                    1.0 / dt
-                )
-
+                fps = fps_filter.update(1.0 / max(now - last_loop_t, 1e-6))
                 last_loop_t = now
 
                 h, w = raw_frame.shape[:2]
+                rgb = cv2.cvtColor(raw_frame, cv2.COLOR_BGR2RGB)
+                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                display = cv2.flip(raw_frame, 1) if mirror else raw_frame.copy()
 
-                # MediaPipe analyzes original frame.
-                rgb = cv2.cvtColor(
-                    raw_frame,
-                    cv2.COLOR_BGR2RGB,
-                )
-
-                mp_image = mp.Image(
-                    image_format=mp.ImageFormat.SRGB,
-                    data=rgb,
-                )
-
-                # User sees mirrored frame by default.
-                display_frame = (
-                    cv2.flip(raw_frame, 1)
-                    if mirror
-                    else raw_frame.copy()
-                )
-
-                timestamp_ms = int(
-                    (now - start_t) * 1000
-                )
-
-                if (
-                    timestamp_ms
-                    <= last_timestamp_ms
-                ):
-                    timestamp_ms = (
-                        last_timestamp_ms + 1
-                    )
-
+                timestamp_ms = int((now - start_t) * 1000)
+                if timestamp_ms <= last_timestamp_ms:
+                    timestamp_ms = last_timestamp_ms + 1
                 last_timestamp_ms = timestamp_ms
 
-                result = landmarker.detect_for_video(
-                    mp_image,
-                    timestamp_ms,
-                )
+                result = landmarker.detect_for_video(mp_image, timestamp_ms)
 
                 pose_ok = False
+                fist_ok = False
+                chest = None
+                wrist = None
                 a_xy = None
                 b_xy = None
+                body_zone = None
+                direction = None
+                relative_xy = None
+                distance_norm = None
+                approach_speed = 0.0
+                shoulder_width = None
 
                 if result.pose_landmarks:
                     lm = result.pose_landmarks[0]
+                    l_sh = lm[LEFT_SHOULDER]
+                    r_sh = lm[RIGHT_SHOULDER]
+                    r_wr = lm[RIGHT_WRIST]
 
-                    left_sh_lm = lm[
-                        LEFT_SHOULDER
-                    ]
-
-                    right_sh_lm = lm[
-                        RIGHT_SHOULDER
-                    ]
-
-                    right_wrist_lm = lm[
-                        RIGHT_WRIST
-                    ]
-
-                    needed = [
-                        left_sh_lm,
-                        right_sh_lm,
-                        right_wrist_lm,
-                    ]
-
-                    if all(
-                        visible(x)
-                        for x in needed
-                    ):
+                    # A/body tracking only needs shoulders.
+                    if visible(l_sh) and visible(r_sh):
                         pose_ok = True
+                        left_shoulder = landmark_to_display_pixel(l_sh, w, h, mirror)
+                        right_shoulder = landmark_to_display_pixel(r_sh, w, h, mirror)
+                        shoulder_width = float(np.linalg.norm(left_shoulder - right_shoulder))
 
-                        left_shoulder = (
-                            landmark_to_display_pixel(
-                                left_sh_lm,
-                                w,
-                                h,
-                                mirror,
+                        chest = chest_filter.update(chest_center(left_shoulder, right_shoulder))
+                        a_xy = to_bottom_left_xy(chest, w, h)
+                        body_zone = zone_from_x(chest[0], w)
+
+                        # B/punch can be lost without breaking body-zone detection.
+                        if visible(r_wr):
+                            fist_ok = True
+                            wrist = wrist_filter.update(
+                                landmark_to_display_pixel(r_wr, w, h, mirror)
                             )
-                        )
+                            b_xy = to_bottom_left_xy(wrist, w, h)
+                            relative_xy = relative_to_chest_xy(chest, wrist)
 
-                        right_shoulder = (
-                            landmark_to_display_pixel(
-                                right_sh_lm,
-                                w,
-                                h,
-                                mirror,
+                            distance_px = float(np.linalg.norm(wrist - chest))
+                            distance_norm = distance_px / max(shoulder_width, 1.0)
+
+                            direction = hand_direction(
+                                relative_xy[0],
+                                relative_xy[1],
+                                distance_norm,
                             )
-                        )
 
-                        right_wrist = (
-                            landmark_to_display_pixel(
-                                right_wrist_lm,
-                                w,
-                                h,
-                                mirror,
+                            punch, approach_speed = punch_detector.update(
+                                t=now - start_t,
+                                distance_norm=distance_norm,
                             )
-                        )
 
-                        # A = moving chest center.
-                        chest_raw = (
-                            calculate_chest_center(
-                                left_shoulder,
-                                right_shoulder,
-                            )
-                        )
+                            if punch:
+                                last_punch_screen_t = now
+                                print(
+                                    f"PUNCH | Body={body_zone} | "
+                                    f"A={a_xy} | B={b_xy} | "
+                                    f"distance={distance_norm:.2f}"
+                                )
+                        else:
+                            wrist_filter.reset()
 
-                        # Smooth tracked points.
-                        chest = chest_filter.update(
-                            chest_raw
-                        )
+                draw_zones(display, body_zone)
+                draw_axes(display)
 
-                        wrist = wrist_filter.update(
-                            right_wrist
-                        )
+                if pose_ok and chest is not None and a_xy is not None:
+                    draw_moving_chest_axes(display, chest)
 
-                        # Convert to bottom-left window XY.
-                        a_xy = display_to_window_xy(
+                    if shoulder_width is not None:
+                        draw_punch_circle(
+                            display,
                             chest,
-                            w,
-                            h,
-                        )
-
-                        b_xy = display_to_window_xy(
+                            shoulder_width,
                             wrist,
-                            w,
-                            h,
                         )
 
-                        # Only two tracking points are drawn.
-                        draw_tracking_point(
-                            display_frame,
-                            chest,
-                            "A",
-                            a_xy,
-                        )
+                    draw_ab(
+                        display,
+                        chest,
+                        wrist,
+                        a_xy,
+                        b_xy,
+                        relative_xy,
+                    )
 
-                        draw_tracking_point(
-                            display_frame,
-                            wrist,
-                            "B",
-                            b_xy,
-                        )
-
-                # Fixed window coordinate reference only.
-                # No body-centered axes are drawn.
-                draw_window_origin(
-                    display_frame
-                )
-
-                draw_status(
-                    display_frame,
+                punch_visible = (now - last_punch_screen_t) < PUNCH_TEXT_DURATION_S
+                draw_main_text(display, body_zone, direction, punch_visible)
+                draw_debug(
+                    display,
                     pose_ok,
-                    a_xy,
-                    b_xy,
+                    fist_ok,
+                    body_zone,
+                    direction,
+                    relative_xy,
+                    distance_norm,
+                    approach_speed,
+                    punch_detector.state,
                     fps,
-                    mirror,
                 )
 
-                if (
-                    csv_writer is not None
-                ):
-                    if pose_ok:
-                        csv_writer.writerow(
-                            [
-                                round(
-                                    now - start_t,
-                                    4,
-                                ),
-                                round(
-                                    a_xy[0],
-                                    2,
-                                ),
-                                round(
-                                    a_xy[1],
-                                    2,
-                                ),
-                                round(
-                                    b_xy[0],
-                                    2,
-                                ),
-                                round(
-                                    b_xy[1],
-                                    2,
-                                ),
-                                1,
-                            ]
-                        )
-                    else:
-                        csv_writer.writerow(
-                            [
-                                round(
-                                    now - start_t,
-                                    4,
-                                ),
-                                "",
-                                "",
-                                "",
-                                "",
-                                0,
-                            ]
-                        )
-
-                cv2.imshow(
-                    "Boxing CV - A Chest / B Right Wrist",
-                    display_frame,
-                )
-
-                key = (
-                    cv2.waitKey(1)
-                    & 0xFF
-                )
+                cv2.imshow("LinguaPlay - Body + Circular Punch + 4 Direction", display)
+                key = cv2.waitKey(1) & 0xFF
 
                 if key == ord("q"):
                     break
-
                 if key == ord("r"):
                     chest_filter.reset()
                     wrist_filter.reset()
-                    print(
-                        "Point smoothing reset."
-                    )
+                    punch_detector.reset()
+                    last_punch_screen_t = -1e9
+                    print("Detector reset.")
 
     finally:
         cap.release()
         cv2.destroyAllWindows()
-
-        if csv_file is not None:
-            csv_file.close()
 
     print("Finished.")
 
