@@ -1,3 +1,4 @@
+import { DeviceStatus } from '../hud/DeviceStatus';
 import { game } from '../../game/instance';
 
 export function GameMenu() {
@@ -42,6 +43,8 @@ export function GameMenu() {
             Settings
           </button>
         </div>
+
+        <DeviceStatus />
       </div>
     </div>
   );

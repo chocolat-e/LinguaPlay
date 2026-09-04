@@ -39,7 +39,7 @@ export async function requestAdaptivePlan(report: LearnerReport): Promise<CoachR
     const issues = findPlanIssues(parsed.data);
     if (issues.length > 0) throw new Error(`The coach plan failed validation: ${issues[0]}`);
 
-    const model = typeof body.model === 'string' ? body.model : 'openai/gpt-5.6-terra';
+    const model = typeof body.model === 'string' ? body.model : 'google/gemini-3.1-pro-preview';
     const generatedAt = typeof body.generatedAt === 'string' ? body.generatedAt : new Date().toISOString();
     return {
       package: {

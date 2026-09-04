@@ -1,3 +1,4 @@
+import { DeviceStatus } from '../hud/DeviceStatus';
 import { game } from '../../game/instance';
 import { useSettings } from '../../hooks/useGameState';
 import { useGameStore } from '../../store/gameStore';
@@ -69,6 +70,11 @@ export function SettingsScreen() {
           >
             {settings.adaptiveDifficulty ? 'On' : 'Off'}
           </button>
+        </div>
+
+        <div className="field">
+          <span className="field__label">Devices</span>
+          <DeviceStatus />
         </div>
 
         <div className="toggle">

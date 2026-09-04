@@ -1,0 +1,1662 @@
+{
+  "generatedAt": "2026-09-04T03:02:25.022Z",
+  "repeats": 4,
+  "aggregate": {
+    "targetPrecisionFuzzy": {
+      "mean": 1,
+      "sd": 0,
+      "min": 1,
+      "max": 1,
+      "n": 32
+    },
+    "targetPrecisionStrict": {
+      "mean": 1,
+      "sd": 0,
+      "min": 1,
+      "max": 1,
+      "n": 32
+    },
+    "weakConceptRecall": {
+      "mean": 1,
+      "sd": 0,
+      "min": 1,
+      "max": 1,
+      "n": 32
+    },
+    "dueConceptRecall": {
+      "mean": 1,
+      "sd": 0,
+      "min": 1,
+      "max": 1,
+      "n": 32
+    },
+    "misconceptionCoverage": {
+      "mean": 0.3131,
+      "sd": 0.2228,
+      "min": 0,
+      "max": 1,
+      "n": 32
+    },
+    "itemsOnCurriculum": {
+      "mean": 0.1708,
+      "sd": 0.0203,
+      "min": 0.13333333333333333,
+      "max": 0.26666666666666666,
+      "n": 32
+    },
+    "novelStemRate": {
+      "mean": 0,
+      "sd": 0,
+      "min": 0,
+      "max": 0,
+      "n": 32
+    },
+    "readingGrade": {
+      "mean": 5.2963,
+      "sd": 0.3816,
+      "min": 4.12,
+      "max": 6.15,
+      "n": 32
+    },
+    "categoriesUsed": {
+      "mean": 6,
+      "sd": 0,
+      "min": 6,
+      "max": 6,
+      "n": 32
+    },
+    "distinctMisconceptionRate": {
+      "mean": 1,
+      "sd": 0,
+      "min": 1,
+      "max": 1,
+      "n": 32
+    },
+    "genericMisconceptionRate": {
+      "mean": 1,
+      "sd": 0,
+      "min": 1,
+      "max": 1,
+      "n": 32
+    },
+    "positionChiSquare": {
+      "mean": 27.07,
+      "sd": 0,
+      "min": 27.07,
+      "max": 27.07,
+      "n": 32
+    },
+    "correctAtIndex3": {
+      "mean": 0,
+      "sd": 0,
+      "min": 0,
+      "max": 0,
+      "n": 32
+    },
+    "longestOptionIsCorrect": {
+      "mean": 10,
+      "sd": 0,
+      "min": 10,
+      "max": 10,
+      "n": 32
+    },
+    "nearDuplicatePairs": {
+      "mean": 0,
+      "sd": 0,
+      "min": 0,
+      "max": 0,
+      "n": 32
+    },
+    "meanStemWords": {
+      "mean": 6.1,
+      "sd": 0,
+      "min": 6.1,
+      "max": 6.1,
+      "n": 32
+    },
+    "positionBalancedPlans": 0,
+    "plansWithBannedTerm": 0,
+    "plansWithDiscouragedTerm": 0,
+    "bannedTermHits": [],
+    "discouragedTermHits": [],
+    "plans": 32
+  },
+  "perPlan": [
+    {
+      "personaId": "P1-cold-start",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 1,
+        "itemsOnCurriculum": 0.13333333333333333,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.22,
+        "playerWordCount": 151,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P1-cold-start",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.625,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.43,
+        "playerWordCount": 149,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P1-cold-start",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.5,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.35,
+        "playerWordCount": 149,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P1-cold-start",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "vocabulary": 7,
+          "synonym": 4,
+          "antonym": 4,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.125,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.1,
+        "playerWordCount": 151,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P2-struggling-beginner",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.125,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.31,
+        "playerWordCount": 147,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P2-struggling-beginner",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.64,
+        "playerWordCount": 147,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P2-struggling-beginner",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.125,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 4.78,
+        "playerWordCount": 150,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P2-struggling-beginner",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 6.15,
+        "playerWordCount": 150,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P3-grammar-gaps",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.25,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.56,
+        "playerWordCount": 147,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P3-grammar-gaps",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.14285714285714285,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.17,
+        "playerWordCount": 148,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P3-grammar-gaps",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.2857142857142857,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.57,
+        "playerWordCount": 148,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P3-grammar-gaps",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.125,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.36,
+        "playerWordCount": 150,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P4-advanced",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "vocabulary": 7,
+          "synonym": 4,
+          "antonym": 4,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.375,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.29,
+        "playerWordCount": 150,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P4-advanced",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.125,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 4.93,
+        "playerWordCount": 148,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P4-advanced",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.42857142857142855,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.36,
+        "playerWordCount": 150,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P4-advanced",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.2857142857142857,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.94,
+        "playerWordCount": 152,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P5-motor-misses",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.5,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.48,
+        "playerWordCount": 159,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P5-motor-misses",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "antonym": 4,
+          "grammar": 9,
+          "synonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.42857142857142855,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.1,
+        "playerWordCount": 158,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P5-motor-misses",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.5,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.34,
+        "playerWordCount": 159,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P5-motor-misses",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.375,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.04,
+        "playerWordCount": 159,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P6-early-puncher",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.125,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.5,
+        "playerWordCount": 154,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P6-early-puncher",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.25,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 4.78,
+        "playerWordCount": 152,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P6-early-puncher",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 4.12,
+        "playerWordCount": 154,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P6-early-puncher",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "antonym": 4,
+          "synonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.51,
+        "playerWordCount": 155,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P7-returning-decayed",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "antonym": 4,
+          "everyday": 4,
+          "synonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.5,
+        "itemsOnCurriculum": 0.2,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.3,
+        "playerWordCount": 146,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P7-returning-decayed",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "antonym": 4,
+          "synonym": 4,
+          "grammar": 9,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.375,
+        "itemsOnCurriculum": 0.2,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.1,
+        "playerWordCount": 144,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P7-returning-decayed",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.5,
+        "itemsOnCurriculum": 0.26666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.1,
+        "playerWordCount": 144,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P7-returning-decayed",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.5714285714285714,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.52,
+        "playerWordCount": 157,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P8-repeated-misconception",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.5,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.15,
+        "playerWordCount": 147,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P8-repeated-misconception",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "antonym": 4,
+          "grammar": 9,
+          "synonym": 4,
+          "vocabulary": 7,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.25,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 4.85,
+        "playerWordCount": 148,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P8-repeated-misconception",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "grammar": 9,
+          "everyday": 4,
+          "synonym": 4,
+          "antonym": 4,
+          "vocabulary": 7,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.375,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.86,
+        "playerWordCount": 152,
+        "novelStemRate": 0
+      }
+    },
+    {
+      "personaId": "P8-repeated-misconception",
+      "metrics": {
+        "semanticIssues": [],
+        "issueKinds": [],
+        "difficultyCounts": {
+          "easy": 10,
+          "medium": 10,
+          "hard": 10
+        },
+        "categoryCounts": {
+          "vocabulary": 7,
+          "synonym": 4,
+          "antonym": 4,
+          "grammar": 9,
+          "everyday": 4,
+          "sentence": 2
+        },
+        "categoriesUsed": 6,
+        "positionCounts": [
+          10,
+          18,
+          2,
+          0
+        ],
+        "positionChiSquare": 27.07,
+        "positionBalanced": false,
+        "correctAtIndex3": 0,
+        "longestOptionIsCorrect": 10,
+        "shortestOptionIsCorrect": 3,
+        "duplicateStems": 0,
+        "nearDuplicatePairs": 0,
+        "meanStemWords": 6.1,
+        "distinctMisconceptionRate": 1,
+        "genericMisconceptionRate": 1,
+        "targetPrecisionStrict": 1,
+        "targetPrecisionFuzzy": 1,
+        "weakConceptRecall": 1,
+        "dueConceptRecall": 1,
+        "misconceptionCoverage": 0.25,
+        "itemsOnCurriculum": 0.16666666666666666,
+        "bannedHits": [],
+        "discouragedHits": [],
+        "readingGrade": 5.57,
+        "playerWordCount": 148,
+        "novelStemRate": 0
+      }
+    }
+  ]
+}

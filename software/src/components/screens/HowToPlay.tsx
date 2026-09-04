@@ -33,7 +33,8 @@ export function HowToPlay() {
           <div className="howto__card">
             <strong>Defend</strong>
             <span>
-              Shift raises your guard — but only briefly. Time it to the last moment of
+              Shift raises your guard — or, on camera, bring your palm back onto your
+              chest. Either way it holds only briefly, so time it to the last moment of
               the monster's wind-up.
             </span>
           </div>

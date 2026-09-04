@@ -1,0 +1,13 @@
+# Computer vision — tracks the player and detects punches.
+opencv-python>=4.9
+mediapipe>=0.10.14
+numpy>=1.26
+
+# The device bridge — merges the controller and the camera into one snapshot
+# the game polls, and carries feedback back to the controller.
+flask>=3.0
+flask-cors>=4.0
+# Serves the bridge with HTTP/1.1 keep-alive. Flask's own dev server closes the
+# connection after every response, which makes the ESP32 reconnect on each push
+# and puts ~170 ms of lag in front of every punch.
+waitress>=3.0

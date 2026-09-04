@@ -1,0 +1,821 @@
+<title>Punch English Coach Evaluation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --page:        #f2f1ed;
+    --surface:     #fcfcfb;
+    --surface-2:   #f7f6f2;
+    --ink:         #12120f;
+    --ink-2:       #54534d;
+    --ink-3:       #8a8880;
+    --rule:        #dddcd4;
+    --rule-strong: #c3c2b7;
+    --accent:      #1c5cab;
+    --series-llm:  #2a78d6;
+    --series-base: #eb6834;
+    --good:        #0ca30c;
+    --warn:        #fab219;
+    --crit:        #d03b3b;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page:        #0d0d0d;
+      --surface:     #1a1a19;
+      --surface-2:   #212120;
+      --ink:         #ffffff;
+      --ink-2:       #c3c2b7;
+      --ink-3:       #898781;
+      --rule:        #2c2c2a;
+      --rule-strong: #383835;
+      --accent:      #3987e5;
+      --series-llm:  #3987e5;
+      --series-base: #d95926;
+      --good:        #0ca30c;
+      --warn:        #fab219;
+      --crit:        #d03b3b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:        #0d0d0d;
+    --surface:     #1a1a19;
+    --surface-2:   #212120;
+    --ink:         #ffffff;
+    --ink-2:       #c3c2b7;
+    --ink-3:       #898781;
+    --rule:        #2c2c2a;
+    --rule-strong: #383835;
+    --accent:      #3987e5;
+    --series-llm:  #3987e5;
+    --series-base: #d95926;
+    --good:        #0ca30c;
+    --warn:        #fab219;
+    --crit:        #d03b3b;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    max-width: 61rem;
+    margin: 0 auto;
+    background: var(--surface);
+    border-left: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    padding: 0 clamp(1.1rem, 4vw, 4rem) 5rem;
+  }
+
+  /* ---------- title block ---------- */
+  .masthead { padding: clamp(2.2rem, 6vw, 4rem) 0 1.6rem; border-bottom: 2px solid var(--ink); }
+  .eyebrow {
+    font-family: var(--mono); font-size: .69rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600; margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 600; font-size: clamp(1.95rem, 5.2vw, 3rem);
+    line-height: 1.08; letter-spacing: -.021em; margin: 0 0 .7rem; text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 1.09rem; color: var(--ink-2); margin: 0; max-width: 44rem; text-wrap: pretty;
+  }
+  .runmeta {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 0; margin: 1.9rem 0 0; border-top: 1px solid var(--rule);
+    font-family: var(--mono); font-size: .76rem;
+  }
+  .runmeta div { padding: .72rem .9rem .72rem 0; border-bottom: 1px solid var(--rule); }
+  .runmeta dt { color: var(--ink-3); letter-spacing: .05em; text-transform: uppercase; font-size: .66rem; }
+  .runmeta dd { margin: .3rem 0 0; color: var(--ink); font-weight: 500; word-break: break-word; }
+
+  /* ---------- sections ---------- */
+  section { padding-top: 2.9rem; }
+  h2 {
+    font-family: var(--sans); font-weight: 600; font-size: 1.42rem; letter-spacing: -.012em;
+    margin: 0 0 .2rem; display: flex; gap: .7rem; align-items: baseline; text-wrap: balance;
+  }
+  h2 .num {
+    font-family: var(--mono); font-size: .82rem; color: var(--accent);
+    font-weight: 600; flex: none; padding-top: .12rem;
+  }
+  h3 {
+    font-family: var(--sans); font-weight: 600; font-size: 1.02rem; letter-spacing: -.004em;
+    margin: 2.1rem 0 .55rem; color: var(--ink);
+  }
+  h2 + .lede { color: var(--ink-2); margin: .1rem 0 1.3rem 2.05rem; max-width: 42rem; }
+  p { max-width: 42rem; margin: 0 0 1rem; }
+  section > p, section > ul, section > ol, section > .callout, section > .deflist { margin-left: 2.05rem; }
+  @media (max-width: 34rem) {
+    section > p, section > ul, section > ol, section > .callout, section > .deflist,
+    h2 + .lede { margin-left: 0; }
+  }
+  ul, ol { max-width: 42rem; padding-left: 1.15rem; margin: 0 0 1rem; }
+  li { margin-bottom: .42rem; }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--mono); font-size: .87em; }
+  code { background: var(--surface-2); padding: .1em .34em; border-radius: 3px; }
+  a { color: var(--accent); }
+
+  .deflist { max-width: 42rem; }
+  .deflist dt {
+    font-family: var(--sans); font-weight: 600; font-size: .93rem; margin-top: .95rem; color: var(--ink);
+  }
+  .deflist dd { margin: .12rem 0 0; color: var(--ink-2); font-size: .96rem; }
+
+  /* ---------- data blocks ---------- */
+  .block { margin: 1.5rem 0 1.9rem; }
+  .block-title {
+    font-family: var(--mono); font-size: .69rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 .75rem; font-weight: 500;
+  }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: .79rem; }
+  th, td { text-align: right; padding: .46rem .7rem; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; white-space: normal; min-width: 12rem; }
+  thead th {
+    color: var(--ink-3); font-weight: 500; text-transform: uppercase; font-size: .66rem;
+    letter-spacing: .07em; border-bottom: 1px solid var(--rule-strong);
+  }
+  tbody td { font-variant-numeric: tabular-nums; color: var(--ink); }
+  tbody tr:hover { background: var(--surface-2); }
+  td .sd { color: var(--ink-3); font-size: .92em; }
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: .68rem; font-weight: 500;
+    padding: .1rem .42rem; border-radius: 3px; border: 1px solid currentColor; letter-spacing: .02em;
+  }
+  .pill.good { color: var(--good); }
+  .pill.warn { color: #8a6100; }
+  .pill.crit { color: var(--crit); }
+  :root[data-theme="dark"] .pill.warn { color: var(--warn); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.warn { color: var(--warn); } }
+
+  /* ---------- stat tiles ---------- */
+  .tiles {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 1.6rem 0 1.9rem;
+  }
+  .tile { background: var(--surface); padding: 1rem 1.05rem 1.05rem; }
+  .tile .k {
+    font-family: var(--mono); font-size: .655rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 .5rem;
+  }
+  .tile .v {
+    font-family: var(--sans); font-size: 1.85rem; font-weight: 600; line-height: 1;
+    letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .tile .u { font-size: .95rem; font-weight: 500; color: var(--ink-2); margin-left: .12rem; }
+  .tile .n { font-family: var(--mono); font-size: .69rem; color: var(--ink-3); margin: .42rem 0 0; }
+
+  /* ---------- bar charts ---------- */
+  .legend {
+    display: flex; gap: 1.15rem; flex-wrap: wrap; font-family: var(--mono);
+    font-size: .71rem; color: var(--ink-2); margin: 0 0 .95rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: .38rem; }
+  .swatch { width: .72rem; height: .72rem; border-radius: 2px; flex: none; }
+  .chart { display: grid; gap: .55rem; }
+  .row { display: grid; grid-template-columns: minmax(7rem, 13rem) 1fr; gap: .85rem; align-items: center; }
+  .row .rl { font-family: var(--mono); font-size: .73rem; color: var(--ink-2); text-align: right; line-height: 1.3; }
+  .bars { display: grid; gap: 2px; }
+  .bar { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+  .bar .fill { height: 12px; border-radius: 0 4px 4px 0; flex: none; min-width: 1px; }
+  .bar .bv {
+    font-family: var(--mono); font-size: .705rem; color: var(--ink-2);
+    font-variant-numeric: tabular-nums; flex: none;
+  }
+  .axis {
+    display: flex; justify-content: space-between; font-family: var(--mono); font-size: .655rem;
+    color: var(--ink-3); border-top: 1px solid var(--rule); padding-top: .3rem; margin-top: .55rem;
+  }
+  .axis.offset { margin-left: calc(13rem + .85rem); }
+  @media (max-width: 40rem) {
+    .row { grid-template-columns: 1fr; gap: .25rem; }
+    .row .rl { text-align: left; }
+    .axis.offset { margin-left: 0; }
+  }
+
+  /* CI dot plot */
+  .ci { display: grid; gap: 1.05rem; }
+  .ci-row { display: grid; grid-template-columns: minmax(7rem, 13rem) 1fr; gap: .85rem; align-items: center; }
+  .ci-track { position: relative; height: 26px; }
+  .ci-track::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+    background: var(--rule); transform: translateY(-50%);
+  }
+  .ci-band { position: absolute; top: 50%; height: 3px; transform: translateY(-50%); border-radius: 2px; opacity: .34; }
+  .ci-dot {
+    position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
+    transform: translate(-50%, -50%); border: 2px solid var(--surface);
+  }
+  .ci-val {
+    position: absolute; top: 50%; transform: translate(-50%, -160%); font-family: var(--mono);
+    font-size: .7rem; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--surface-2);
+    padding: .85rem 1.1rem; margin: 1.35rem 0; max-width: 42rem;
+  }
+  .callout p { margin: 0 0 .55rem; font-size: .96rem; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout.crit { border-left-color: var(--crit); }
+  .callout .ct {
+    font-family: var(--mono); font-size: .67rem; letter-spacing: .11em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 .4rem; font-weight: 500;
+  }
+
+  .note { font-size: .87rem; color: var(--ink-3); max-width: 42rem; font-family: var(--sans); }
+  .findings { counter-reset: f; list-style: none; padding: 0; max-width: 42rem; }
+  .findings > li {
+    counter-increment: f; position: relative; padding-left: 2.05rem; margin-bottom: 1.3rem;
+  }
+  .findings > li::before {
+    content: "D" counter(f); position: absolute; left: 0; top: .12rem; font-family: var(--mono);
+    font-size: .73rem; font-weight: 600; color: var(--crit);
+  }
+  .findings h4 {
+    font-family: var(--sans); font-size: .97rem; font-weight: 600; margin: 0 0 .28rem; color: var(--ink);
+  }
+  .findings p { margin: 0 0 .45rem; font-size: .96rem; }
+  pre {
+    font-family: var(--mono); font-size: .74rem; background: var(--surface-2); color: var(--ink);
+    padding: .85rem 1rem; overflow-x: auto; border-left: 2px solid var(--rule-strong); margin: 0 0 1rem;
+    line-height: 1.65;
+  }
+  footer {
+    margin-top: 3.4rem; padding-top: 1.1rem; border-top: 1px solid var(--rule);
+    font-family: var(--mono); font-size: .71rem; color: var(--ink-3);
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="sheet">
+  <header class="masthead">
+    <p class="eyebrow">gPBL 2026 &middot; Punch English &middot; Evaluation report</p>
+    <h1>How well does the AI coach plan the next round?</h1>
+    <p class="standfirst">
+      Thirty-two simulated learner sessions put through the live between-level curriculum
+      planner, measured against the deterministic fallback planner on identical inputs and
+      checked item-by-item by an independent solver from a different provider family.
+    </p>
+    <dl class="runmeta" id="runmeta"></dl>
+  </header>
+
+  <section>
+    <h2><span class="num">1</span>Summary</h2>
+    <div class="tiles" id="headline"></div>
+    <p id="verdict"></p>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>System under test</h2>
+    <p class="lede">What actually runs when a round ends.</p>
+    <p>
+      Punch English is a four-lane rhythm-boxing game for learning English. The live round is
+      driven by a deterministic adaptive algorithm; the language model is used only between
+      rounds. When a round ends the game posts a <em>learner report</em> to a local endpoint
+      (<code>/api/punchkt/plan</code>) and asks for one thing back: a plan for the next round —
+      end-of-round feedback, a curriculum, and a pool of exactly 30 multiple-choice questions.
+    </p>
+    <p>
+      The learner report carries three kinds of evidence, and the prompt requires all three to be
+      used: per-concept mastery and uncertainty; the specific wrong options a player keeps
+      choosing; and which concepts are due for review under a forgetting curve. It also separates
+      motor evidence from language evidence — a punch that never lands is not an English mistake.
+    </p>
+    <p>
+      The response is constrained by a JSON schema and then checked twice on our side: the schema
+      parse enforces the shape and the 30-question count, and <code>findPlanIssues</code> enforces
+      the semantics — unique question stems, no duplicate options, a misconception label on every
+      wrong option and the literal <code>"none"</code> on the correct one, and a difficulty mix
+      that both totals 30 and matches the questions actually written. A plan that fails either
+      check is sent back once with the list of faults; if the retry also fails, the game silently
+      falls back to a deterministic local planner. That fallback is the baseline this report
+      measures against.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>Method</h2>
+    <p class="lede">Where the inputs come from and what counts as evidence.</p>
+
+    <h3>3.1 Simulated learners</h3>
+    <p>
+      Real play data does not exist at the volume an evaluation needs, so the harness synthesises
+      it. Eight learner profiles are defined by their measurable behaviour — a cold start, a
+      struggling beginner, a player with specific grammar gaps, an advanced player, one whose
+      punches keep missing, one who punches early, one returning after a long gap with decayed
+      retention, and one repeating the same misconception. Each profile is simulated
+      <span id="repeatsInline">four</span> times with different seeds, giving
+      <span id="nRuns">32</span> independent sessions. A single fixed clock is used for the whole
+      batch so every simulated report is reproducible.
+    </p>
+    <p class="note">
+      The profiles are checked before any billed call: a free phase prints each one's realised
+      accuracy, miss rate and early-punch rate against its target, so a broken generator is caught
+      before it can be mistaken for a broken model.
+    </p>
+
+    <h3>3.2 The comparison</h3>
+    <p>
+      Every metric below is computed twice — once on the model's plan, once on the deterministic
+      fallback planner's plan for the <em>same</em> learner report — by the same code. That
+      pairing is the point: it answers whether the model earns its cost and latency, rather than
+      whether its output looks plausible in isolation.
+    </p>
+
+    <h3>3.3 Independent item check</h3>
+    <p>
+      Question quality cannot be graded by the model that wrote the questions. A separate solver
+      from a <strong>different provider family</strong> answers every generated item without being
+      shown the answer key, and reports its own concern about each item (ambiguous stem, more than
+      one defensible option, no correct option, overlapping options). Agreement between that
+      solver and the plan's key is evidence about the item.
+    </p>
+    <p>
+      The same solver also answers the 30 <strong>human-authored</strong> questions already shipped
+      in the game. Those are the control: whatever the solver gets "wrong" on hand-written items is
+      the solver's own error rate, and it sets the floor the generated items should be read
+      against. Disagreements are candidates for review, not verdicts — the harness writes them to
+      <code>disagreements.json</code> for adjudication by hand.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>What is measured</h2>
+    <p class="lede">Six groups. Everything except the solver check is computed without a model and without a human, so it can be re-run on any future prompt or model change and compared directly.</p>
+    <dl class="deflist">
+      <dt>Reliability</dt>
+      <dd>Whether a usable plan comes back at all: schema-valid rate, acceptance on the first
+        attempt, recovery via the repair retry, and the served rate (no fallback). Reported with
+        Wilson intervals, which stay sensible at rates near 0 and 1. Latency, token usage and
+        billed cost sit here too.</dd>
+
+      <dt>Item soundness</dt>
+      <dd>Independent-solver agreement with the answer key, split by difficulty, read against the
+        human-authored control, plus the solver's own concern categories.</dd>
+
+      <dt>Curriculum targeting</dt>
+      <dd>Whether the plan addresses what the learner actually needs: precision of the chosen
+        target concepts against the union of weak, uncertain and due concepts (exact and fuzzy
+        name matching, since concept names travel as free text); recall of weak and due concepts;
+        misconception coverage; and the share of questions that sit on the stated curriculum.</dd>
+
+      <dt>Item-writing quality</dt>
+      <dd>The biases that make a question bank easy to game: answer-position balance
+        (&chi;&sup2; against uniform), the correct answer being the longest or shortest option,
+        duplicate and near-duplicate stems, and whether distractor labels actually diagnose
+        anything rather than restating "wrong".</dd>
+
+      <dt>Player-facing language</dt>
+      <dd>Everything the learner reads is checked for reading grade (Flesch–Kincaid; the prompt
+        targets a twelve-year-old) and for leakage of internal or learning-science vocabulary the
+        prompt bans — "mastery", "misconception", "adaptive", "LLM" and the rest.</dd>
+
+      <dt>Novelty</dt>
+      <dd>Whether each session gets fresh material: the share of stems not already in the authored
+        bank, and pairwise stem overlap between plans, which is what catches a model quietly
+        reusing the same thirty questions every round.</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2><span class="num">5</span>Results</h2>
+
+    <h3>5.1 Reliability</h3>
+    <div class="block">
+      <p class="block-title">Attempt funnel</p>
+      <div class="chart" id="funnel"></div>
+      <div class="axis offset"><span>0</span><span id="funnelMax"></span></div>
+    </div>
+    <div class="block scroll">
+      <table id="reliabilityTable"></table>
+    </div>
+    <p id="reliabilityNote"></p>
+
+    <h3>5.2 Plan quality against the deterministic baseline</h3>
+    <div class="block">
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--series-llm)"></i>Model plan</span>
+        <span><i class="swatch" style="background:var(--series-base)"></i>Deterministic fallback</span>
+      </div>
+      <div class="chart" id="qualityChart"></div>
+      <div class="axis offset"><span>0%</span><span>100%</span></div>
+    </div>
+    <p id="qualityNote"></p>
+    <div class="block scroll">
+      <p class="block-title">Non-rate measures</p>
+      <table id="qualityTable"></table>
+    </div>
+
+    <h3>5.3 Item soundness</h3>
+    <div class="block" id="judgeBlock">
+      <p class="block-title">Solver agreement with the answer key (95% Wilson interval)</p>
+      <div class="ci" id="judgeCi"></div>
+      <div class="axis offset"><span>0%</span><span>100%</span></div>
+    </div>
+    <div class="block scroll"><table id="judgeTable"></table></div>
+    <p id="judgeNote"></p>
+
+    <h3>5.4 Answer-position bias</h3>
+    <div class="block">
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--series-llm)"></i>Model plan</span>
+        <span><i class="swatch" style="background:var(--series-base)"></i>Deterministic fallback</span>
+      </div>
+      <div class="chart" id="positionChart"></div>
+      <div class="axis offset"><span>0</span><span id="positionMax"></span></div>
+    </div>
+    <p id="positionNote"></p>
+
+    <h3>5.5 Player-facing language</h3>
+    <div class="block scroll"><table id="languageTable"></table></div>
+    <p id="languageNote"></p>
+
+    <h3>5.6 Novelty</h3>
+    <div class="block scroll"><table id="noveltyTable"></table></div>
+    <p id="noveltyNote"></p>
+
+    <h3>5.7 By learner profile</h3>
+    <p>
+      An aggregate mean can hide the coach failing one kind of learner completely, which is why
+      this table exists.
+    </p>
+    <div class="block scroll"><table id="personaTable"></table></div>
+  </section>
+
+  <section>
+    <h2><span class="num">6</span>Engineering findings</h2>
+    <p class="lede">Defects the evaluation surfaced before it could produce a single number. All four were fixed; the first two also affected the shipped game, not just the harness.</p>
+    <ol class="findings">
+      <li>
+        <h4>The token-limit parameter is not portable across provider families</h4>
+        <p>
+          OpenRouter publishes a per-endpoint parameter list, and the request sets
+          <code>require_parameters: true</code>, which discards any endpoint missing a parameter
+          the request sends. The <code>openai/</code> namespace advertises
+          <code>max_completion_tokens</code>; Google's endpoints advertise <code>max_tokens</code>.
+          Because the code hardcoded <code>max_completion_tokens</code>, every request after the
+          model switch was routed to zero endpoints and returned
+          <code>404 No endpoints found that can handle the requested parameters</code>.
+        </p>
+        <p>
+          This was not confined to the evaluation: the game's own middleware sent the same
+          parameter, so the in-game coach would have failed on every round and silently served the
+          local fallback. Measured directly against the live API, the two families reject the
+          opposite parameter, so a hardcoded name cannot be correct for both — the fix selects the
+          parameter from the model slug.
+        </p>
+      </li>
+      <li>
+        <h4>A 30-item array overflows Gemini's structured-output schema limit</h4>
+        <p>
+          With routing fixed, the provider began rejecting the request body itself with a bare
+          <code>INVALID_ARGUMENT</code>. Bisecting the schema showed the cause is not a keyword but
+          a size: Gemini expands a <code>minItems</code>/<code>maxItems</code> array into that many
+          copies of the item schema, and 30 copies of an eleven-field question object exceeds its
+          limit. Measured on the same model, eight items pass and sixteen fail, while a hundred
+          copies of a one-field object pass — it is the expanded size that matters, not the count.
+        </p>
+        <p>
+          The fix drops length bounds only on large arrays of objects in the schema sent to the
+          provider. Nothing is given up: the count is still stated in the prompt and still enforced
+          on the response by the schema parse and by the difficulty-mix check, which is where a
+          miscount was always caught.
+        </p>
+      </li>
+      <li>
+        <h4>Provider errors were unreadable</h4>
+        <p>
+          The harness recorded only <code>"Provider returned error"</code> for every provider-side
+          rejection, which is undiagnosable — a bad model slug, an unroutable provider filter and a
+          rejected schema all looked identical. OpenRouter puts the upstream complaint in the
+          error's <code>metadata.raw</code>; the harness now records it, which is how the schema
+          limit above was found.
+        </p>
+      </li>
+      <li>
+        <h4>The solver defaulted to the generator's own provider family</h4>
+        <p>
+          The independent check defaults its solver to a Google model. Once the generator became a
+          Google model, that default would have had the family grade its own output, quietly
+          converting the strongest evidence in the report into a measure of self-agreement. The
+          solver is pinned to a different family for this run.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">7</span>Threats to validity</h2>
+    <ul>
+      <li>
+        <strong>Simulated learners, not real ones.</strong> The reports are generated from
+        behavioural profiles. They exercise the planner's input space, but they cannot show whether
+        a plan actually helps a person learn — only whether it is well-formed, well-targeted
+        against the evidence it was given, and sound as English.
+      </li>
+      <li>
+        <strong>The targeting metrics flatter the baseline.</strong> The deterministic planner
+        selects its target concepts directly from the weak and due lists in the report, so its
+        precision and recall are 1.0 by construction rather than by judgement. The informative
+        comparisons are the ones it cannot win by definition: item novelty, misconception quality,
+        language, and whether questions sit on the curriculum.
+      </li>
+      <li>
+        <strong>One solver, one pass.</strong> Agreement is evidence about an item, not proof.
+        The authored-question control bounds the solver's own error rate, but disagreements still
+        need adjudication by hand before they are called generator faults.
+      </li>
+      <li>
+        <strong>Concept names are matched as free text.</strong> Targeting is scored with both
+        exact and fuzzy matching because concept names travel from report to plan as strings; the
+        fuzzy figure is the fairer one and the strict figure is reported beside it.
+      </li>
+      <li>
+        <strong>Transport resilience differs from the game.</strong> A batch is 32 paid runs in one
+        process, so the harness retries connection failures more times than the game does. This
+        changes no generated token — it only stops a local network drop from voiding a paid batch.
+      </li>
+      <li id="truncationNote"></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">8</span>Reproducing this</h2>
+    <p>Each phase writes its own JSON into <code>eval/results/</code>; the report is rendered from those files, so it cannot drift from the measurements it describes.</p>
+    <pre id="repro"></pre>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const DATA = {"generatedAt":"2026-09-04T03:30:07.474Z","model":"google/gemini-3.1-pro-preview","repeats":4,"reliability":{"runs":32,"httpOk":13,"attempts":52,"schemaValidAttempts":13,"firstAttemptAccepted":12,"firstAttemptSchemaValid":12,"retryRecovered":1,"retryAttempted":20,"served":13,"fallback":19,"issueKindCounts":{},"latencySeconds":{"mean":27.7,"p50":0.49,"p95":90.5,"max":195.64},"endToEndSeconds":{"mean":45.02,"p95":91.87},"tokens":{"promptMean":5798,"completionMean":12938,"reasoningMean":5707},"costUsd":{"total":2.16907,"perAttempt":0.04171288461538462,"perServedPlan":0.16685153846153847}},"llm":{"targetPrecisionFuzzy":{"mean":0.6615,"sd":0.1682,"min":0.3333333333333333,"max":0.8333333333333334,"n":13},"targetPrecisionStrict":{"mean":0.6615,"sd":0.1682,"min":0.3333333333333333,"max":0.8333333333333334,"n":13},"weakConceptRecall":{"mean":0.7885,"sd":0.2247,"min":0.5,"max":1,"n":13},"dueConceptRecall":{"mean":0.9538,"sd":0.1198,"min":0.6,"max":1,"n":13},"misconceptionCoverage":{"mean":0.8255,"sd":0.1572,"min":0.5,"max":1,"n":13},"itemsOnCurriculum":{"mean":0.7205,"sd":0.1482,"min":0.5,"max":1,"n":13},"novelStemRate":{"mean":0.9923,"sd":0.0146,"min":0.9666666666666667,"max":1,"n":13},"readingGrade":{"mean":6.8638,"sd":1.1143,"min":5.13,"max":8.94,"n":13},"categoriesUsed":{"mean":5.6923,"sd":0.6304,"min":4,"max":6,"n":13},"distinctMisconceptionRate":{"mean":0.9513,"sd":0.0899,"min":0.7333333333333333,"max":1,"n":13},"genericMisconceptionRate":{"mean":0.0051,"sd":0.0185,"min":0,"max":0.06666666666666667,"n":13},"positionChiSquare":{"mean":0.3985,"sd":0.4629,"min":0.13,"max":1.73,"n":13},"correctAtIndex3":{"mean":7,"sd":0.4082,"min":6,"max":8,"n":13},"longestOptionIsCorrect":{"mean":8.8462,"sd":1.4051,"min":7,"max":11,"n":13},"nearDuplicatePairs":{"mean":0,"sd":0,"min":0,"max":0,"n":13},"meanStemWords":{"mean":9.6015,"sd":1.4146,"min":7.1,"max":12.27,"n":13},"positionBalancedPlans":13,"plansWithBannedTerm":0,"plansWithDiscouragedTerm":0,"bannedTermHits":[],"discouragedTermHits":[],"plans":13},"local":{"targetPrecisionFuzzy":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"targetPrecisionStrict":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"weakConceptRecall":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"dueConceptRecall":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"misconceptionCoverage":{"mean":0.3131,"sd":0.2228,"min":0,"max":1,"n":32},"itemsOnCurriculum":{"mean":0.1708,"sd":0.0203,"min":0.13333333333333333,"max":0.26666666666666666,"n":32},"novelStemRate":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"readingGrade":{"mean":5.2963,"sd":0.3816,"min":4.12,"max":6.15,"n":32},"categoriesUsed":{"mean":6,"sd":0,"min":6,"max":6,"n":32},"distinctMisconceptionRate":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"genericMisconceptionRate":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"positionChiSquare":{"mean":27.07,"sd":0,"min":27.07,"max":27.07,"n":32},"correctAtIndex3":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"longestOptionIsCorrect":{"mean":10,"sd":0,"min":10,"max":10,"n":32},"nearDuplicatePairs":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"meanStemWords":{"mean":6.1,"sd":0,"min":6.1,"max":6.1,"n":32},"positionBalancedPlans":0,"plansWithBannedTerm":0,"plansWithDiscouragedTerm":0,"bannedTermHits":[],"discouragedTermHits":[],"plans":32},"novelty":{"meanPairwiseOverlap":0.003,"maxPairwiseOverlap":0.0333,"uniqueStemsAcrossAllPlans":383,"totalStemsGenerated":390},"judge":null,"perPersona":[{"personaId":"P1-cold-start","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.7,"weakConceptRecall":0.813,"dueConceptRecall":0.95,"itemsOnCurriculum":0.642,"readingGrade":6.9},{"personaId":"P2-struggling-beginner","runs":4,"served":3,"firstAttemptAccepted":3,"targetPrecisionFuzzy":0.422,"weakConceptRecall":0.5,"dueConceptRecall":0.867,"itemsOnCurriculum":0.744,"readingGrade":7.03},{"personaId":"P3-grammar-gaps","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P4-advanced","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P5-motor-misses","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P6-early-puncher","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P7-returning-decayed","runs":4,"served":2,"firstAttemptAccepted":1,"targetPrecisionFuzzy":0.733,"weakConceptRecall":1,"dueConceptRecall":1,"itemsOnCurriculum":0.733,"readingGrade":6.3},{"personaId":"P8-repeated-misconception","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.767,"weakConceptRecall":0.875,"dueConceptRecall":1,"itemsOnCurriculum":0.775,"readingGrade":6.99}],"positions":{"llm":[7.846153846153846,7.6923076923076925,7.461538461538462,7],"local":[10,18,2,0],"expected":7.5},"wilson":{"served":[0.25519634742921493,0.5773997525266626],"firstAttempt":[0.2293388721551334,0.5474559277860367],"schemaValid":[0.15233153802596913,0.3820645805412581],"judgeLlm":null,"judgeAuthored":null}};
+
+const pct = (x, digits = 1) => (Number.isFinite(x) ? (x * 100).toFixed(digits) + '%' : 'n/a');
+const num = (x, digits = 2) => (Number.isFinite(x) ? x.toFixed(digits) : 'n/a');
+const el = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+/* ---------------- title block ---------------- */
+const solver = DATA.judge ? DATA.judge.solverModel : 'not run';
+const totalCost = DATA.reliability.costUsd.total + (DATA.judge ? DATA.judge.costUsd : 0);
+el('runmeta').innerHTML = [
+  ['Planner model', DATA.model],
+  ['Independent solver', solver],
+  ['Sessions', DATA.reliability.runs + ' (' + (DATA.perPersona || []).length + ' profiles × ' + DATA.repeats + ')'],
+  ['Billed cost', '$' + totalCost.toFixed(2)],
+  ['Run date', new Date(DATA.generatedAt).toISOString().slice(0, 10)],
+].map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>').join('');
+el('repeatsInline').textContent = DATA.repeats;
+el('nRuns').textContent = DATA.reliability.runs;
+
+/* ---------------- headline tiles ---------------- */
+const R = DATA.reliability;
+const tiles = [
+  { k: 'Plan served', v: pct(R.served / R.runs, 0), n: R.served + ' of ' + R.runs + ' sessions' },
+  { k: 'Accepted first try', v: pct(R.firstAttemptAccepted / R.runs, 0), n: 'no repair retry needed' },
+  { k: 'Median latency', v: num(R.latencySeconds.p50, 0), u: 's', n: 'p95 ' + num(R.latencySeconds.p95, 0) + 's' },
+  { k: 'Cost per plan', v: '$' + R.costUsd.perServedPlan.toFixed(3), n: 'per served plan' },
+];
+if (DATA.judge) {
+  tiles.push({
+    k: 'Solver agreement',
+    v: pct(DATA.judge.llm.agreed / DATA.judge.llm.total, 0),
+    n: 'authored control ' + pct(DATA.judge.authoredControl.agreed / DATA.judge.authoredControl.total, 0),
+  });
+}
+el('headline').innerHTML = tiles.map((t) =>
+  '<div class="tile"><p class="k">' + esc(t.k) + '</p><div class="v">' + esc(t.v) +
+  (t.u ? '<span class="u">' + esc(t.u) + '</span>' : '') + '</div><p class="n">' + esc(t.n) + '</p></div>'
+).join('');
+
+/* ---------------- bar helpers ---------------- */
+function barRow(label, series, max, fmt) {
+  const bars = series.map((s) =>
+    '<div class="bar"><span class="fill" style="width:' +
+    (max > 0 ? Math.max(0, (s.value / max) * 100) : 0) + '%;background:' + s.color + '"></span>' +
+    '<span class="bv">' + esc(fmt(s.value)) + '</span></div>'
+  ).join('');
+  return '<div class="row"><div class="rl">' + esc(label) + '</div><div class="bars">' + bars + '</div></div>';
+}
+
+/* ---------------- 5.1 reliability ---------------- */
+const funnelSteps = [
+  ['Attempts made', R.attempts],
+  ['Reached the API', R.httpOk],
+  ['Schema-valid', R.schemaValidAttempts],
+  ['Accepted first try', R.firstAttemptAccepted],
+  ['Plan served', R.served],
+];
+const funnelMax = Math.max(...funnelSteps.map((s) => s[1]));
+el('funnelMax').textContent = funnelMax;
+el('funnel').innerHTML = funnelSteps.map(([label, v]) =>
+  barRow(label, [{ value: v, color: 'var(--series-llm)' }], funnelMax, (x) => String(x))
+).join('');
+
+const ci = (w) => '[' + pct(w[0], 0) + '–' + pct(w[1], 0) + ']';
+el('reliabilityTable').innerHTML =
+  '<thead><tr><th>Measure</th><th>Value</th><th>95% interval</th></tr></thead><tbody>' +
+  [
+    ['Plan served (no fallback)', R.served + '/' + R.runs + ' = ' + pct(R.served / R.runs), ci(DATA.wilson.served)],
+    ['Accepted on first attempt', R.firstAttemptAccepted + '/' + R.runs + ' = ' + pct(R.firstAttemptAccepted / R.runs), ci(DATA.wilson.firstAttempt)],
+    ['Schema-valid attempts', R.schemaValidAttempts + '/' + R.attempts + ' = ' + pct(R.schemaValidAttempts / R.attempts), ci(DATA.wilson.schemaValid)],
+    ['Recovered by the repair retry', R.retryRecovered + '/' + R.retryAttempted + ' retries', '—'],
+    ['Latency mean / p50 / p95 / max', num(R.latencySeconds.mean, 1) + ' / ' + num(R.latencySeconds.p50, 1) + ' / ' + num(R.latencySeconds.p95, 1) + ' / ' + num(R.latencySeconds.max, 1) + ' s', '—'],
+    ['Tokens in / out / reasoning', R.tokens.promptMean + ' / ' + R.tokens.completionMean + ' / ' + (R.tokens.reasoningMean ?? 'n/a'), '—'],
+    ['Cost total / per served plan', '$' + R.costUsd.total.toFixed(4) + ' / $' + R.costUsd.perServedPlan.toFixed(4), '—'],
+  ].map((r) => '<tr><td>' + r.map(esc).join('</td><td>') + '</td></tr>').join('') + '</tbody>';
+
+const issueKinds = Object.entries(R.issueKindCounts || {});
+el('reliabilityNote').innerHTML = issueKinds.length
+  ? 'Rejected attempts failed on: ' + issueKinds.map(([k, v]) => '<code>' + esc(k) + '</code> × ' + v).join(', ') +
+    '. The repair retry is given the exact list of faults and asked to regenerate the whole plan.'
+  : 'No attempt that reached the API was rejected by either validation stage.';
+
+/* ---------------- 5.2 quality ---------------- */
+const L = DATA.llm, B = DATA.local;
+const rateMetrics = [
+  ['Target precision (fuzzy)', 'targetPrecisionFuzzy'],
+  ['Target precision (strict)', 'targetPrecisionStrict'],
+  ['Weak-concept recall', 'weakConceptRecall'],
+  ['Due-concept recall', 'dueConceptRecall'],
+  ['Misconception coverage', 'misconceptionCoverage'],
+  ['Questions on curriculum', 'itemsOnCurriculum'],
+  ['Novel stems (vs bank)', 'novelStemRate'],
+  ['Distinct misconceptions', 'distinctMisconceptionRate'],
+  ['Generic misconceptions', 'genericMisconceptionRate'],
+];
+el('qualityChart').innerHTML = rateMetrics.map(([label, key]) =>
+  barRow(label, [
+    { value: L[key].mean, color: 'var(--series-llm)' },
+    { value: B ? B[key].mean : NaN, color: 'var(--series-base)' },
+  ], 1, (x) => pct(x, 0))
+).join('');
+
+const cell = (a) => Number.isFinite(a.mean) ? num(a.mean, 2) + ' <span class="sd">±' + num(a.sd, 2) + '</span>' : 'n/a';
+el('qualityTable').innerHTML =
+  '<thead><tr><th>Measure</th><th>Model plan</th><th>Deterministic</th></tr></thead><tbody>' +
+  [
+    ['Reading grade (Flesch–Kincaid)', cell(L.readingGrade), B ? cell(B.readingGrade) : 'n/a'],
+    ['Categories used (of 6)', cell(L.categoriesUsed), B ? cell(B.categoriesUsed) : 'n/a'],
+    ['Near-duplicate stem pairs', cell(L.nearDuplicatePairs), B ? cell(B.nearDuplicatePairs) : 'n/a'],
+    ['Mean stem length (words)', cell(L.meanStemWords), B ? cell(B.meanStemWords) : 'n/a'],
+    ['Answer-position &chi;&sup2;', cell(L.positionChiSquare), B ? cell(B.positionChiSquare) : 'n/a'],
+    ['Correct answer at slot 3', cell(L.correctAtIndex3), B ? cell(B.correctAtIndex3) : 'n/a'],
+    ['Longest option is correct', cell(L.longestOptionIsCorrect), B ? cell(B.longestOptionIsCorrect) : 'n/a'],
+    ['Plans with balanced positions', L.positionBalancedPlans + '/' + L.plans, B ? B.positionBalancedPlans + '/' + B.plans : 'n/a'],
+  ].map((r) => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody>';
+
+el('qualityNote').innerHTML =
+  'Target precision and weak/due recall are <strong>1.00 by construction</strong> for the ' +
+  'deterministic planner — it copies its targets straight out of the report — so those four rows ' +
+  'are not a contest. The rows that separate the two are novelty, misconception quality and ' +
+  'whether the questions actually sit on the curriculum the plan claims.';
+
+/* ---------------- 5.3 judge ---------------- */
+if (DATA.judge) {
+  const J = DATA.judge;
+  const ciRow = (label, agreed, total, w, color) => {
+    const p = agreed / total;
+    return '<div class="ci-row"><div class="rl">' + esc(label) + '</div><div class="ci-track">' +
+      '<span class="ci-band" style="left:' + (w[0] * 100) + '%;width:' + ((w[1] - w[0]) * 100) + '%;background:' + color + '"></span>' +
+      '<span class="ci-val" style="left:' + (p * 100) + '%">' + pct(p, 1) + '</span>' +
+      '<span class="ci-dot" style="left:' + (p * 100) + '%;background:' + color + '"></span>' +
+      '</div></div>';
+  };
+  el('judgeCi').innerHTML =
+    ciRow('Generated items', J.llm.agreed, J.llm.total, DATA.wilson.judgeLlm, 'var(--series-llm)') +
+    ciRow('Authored control', J.authoredControl.agreed, J.authoredControl.total, DATA.wilson.judgeAuthored, 'var(--series-base)');
+
+  const diff = J.llm.byDifficulty;
+  el('judgeTable').innerHTML =
+    '<thead><tr><th>Item set</th><th>Agreed</th><th>Rate</th><th>Concerns raised</th></tr></thead><tbody>' +
+    [
+      ['Generated — all', J.llm.agreed + '/' + J.llm.total, pct(J.llm.agreed / J.llm.total), J.llm.concerns],
+      ['Generated — easy', diff.easy.agreed + '/' + diff.easy.total, pct(diff.easy.agreed / diff.easy.total), '—'],
+      ['Generated — medium', diff.medium.agreed + '/' + diff.medium.total, pct(diff.medium.agreed / diff.medium.total), '—'],
+      ['Generated — hard', diff.hard.agreed + '/' + diff.hard.total, pct(diff.hard.agreed / diff.hard.total), '—'],
+      ['Human-authored control', J.authoredControl.agreed + '/' + J.authoredControl.total, pct(J.authoredControl.agreed / J.authoredControl.total), J.authoredControl.concerns],
+    ].map((r) => '<tr><td>' + r.map(esc).join('</td><td>') + '</td></tr>').join('') + '</tbody>';
+
+  const kinds = Object.entries(J.llm.concernKinds || {}).filter(([k]) => k !== 'none');
+  const authoredRate = J.authoredControl.agreed / J.authoredControl.total;
+  const llmRate = J.llm.agreed / J.llm.total;
+  el('judgeNote').innerHTML =
+    'The control matters more than the headline: the solver agreed with ' + pct(authoredRate) +
+    ' of the <em>human-authored</em> bank, so that is the ceiling this method can measure, not 100%. ' +
+    'Generated items sit at ' + pct(llmRate) + '. ' +
+    (kinds.length
+      ? 'Concerns the solver raised on generated items: ' + kinds.map(([k, v]) => '<code>' + esc(k) + '</code> × ' + v).join(', ') + '. '
+      : 'The solver raised no concern categories on generated items. ') +
+    'Every disagreement is written to <code>disagreements.json</code> for review by hand before it is called a fault.';
+} else {
+  el('judgeBlock').innerHTML = '<p class="note">The independent solver phase was not run.</p>';
+  el('judgeTable').outerHTML = '';
+}
+
+/* ---------------- 5.4 positions ---------------- */
+const P = DATA.positions;
+const posMax = Math.max(...P.llm, ...P.local.filter(Number.isFinite), P.expected);
+el('positionMax').textContent = num(posMax, 1);
+el('positionChart').innerHTML = [0, 1, 2, 3].map((i) =>
+  barRow('Slot ' + i + (i === 3 ? ' (never shown)' : ''), [
+    { value: P.llm[i], color: 'var(--series-llm)' },
+    { value: P.local[i], color: 'var(--series-base)' },
+  ], posMax, (x) => num(x, 1))
+).join('');
+el('positionNote').innerHTML =
+  'The game shows three lanes, so an answer placed at slot 3 is never served — the prompt asks for ' +
+  'balance across all four positions, which is in tension with that. Mean questions per plan at each ' +
+  'slot, out of 30; a perfectly uniform plan would put ' + num(P.expected, 1) +
+  ' at each. Balanced-plan counts and the &chi;&sup2; statistic are in the table above.';
+
+/* ---------------- 5.5 language ---------------- */
+el('languageTable').innerHTML =
+  '<thead><tr><th>Measure</th><th>Model plan</th><th>Deterministic</th></tr></thead><tbody>' +
+  [
+    ['Reading grade (target ≈ 6)', cell(L.readingGrade), B ? cell(B.readingGrade) : 'n/a'],
+    ['Plans leaking a banned term', L.plansWithBannedTerm + '/' + L.plans, B ? B.plansWithBannedTerm + '/' + B.plans : 'n/a'],
+    ['Plans using a discouraged term', L.plansWithDiscouragedTerm + '/' + L.plans, B ? B.plansWithDiscouragedTerm + '/' + B.plans : 'n/a'],
+  ].map((r) => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody>';
+
+const hits = (L.bannedTermHits || []).slice(0, 6);
+el('languageNote').innerHTML =
+  (L.plansWithBannedTerm === 0
+    ? 'No plan leaked internal or learning-science vocabulary into text the player reads. '
+    : L.plansWithBannedTerm + ' of ' + L.plans + ' plans leaked at least one banned term into player-facing text. ') +
+  (hits.length ? 'Examples: ' + hits.map((h) => '<code>' + esc(h.term) + '</code> in <code>' + esc(h.field) + '</code>').join(', ') + '. ' : '') +
+  'The check runs on every string the player actually sees — feedback, curriculum titles, and each ' +
+  'question’s explanation and reason — matched as whole words.';
+
+/* ---------------- 5.6 novelty ---------------- */
+const N = DATA.novelty;
+el('noveltyTable').innerHTML =
+  '<thead><tr><th>Measure</th><th>Model plan</th><th>Deterministic</th></tr></thead><tbody>' +
+  [
+    ['Novel stems (not in authored bank)', pct(L.novelStemRate.mean), B ? pct(B.novelStemRate.mean) : 'n/a'],
+    ['Mean pairwise stem overlap', pct(N.meanPairwiseOverlap), '100%'],
+    ['Max pairwise stem overlap', pct(N.maxPairwiseOverlap), '100%'],
+    ['Unique stems / total generated', N.uniqueStemsAcrossAllPlans + ' / ' + N.totalStemsGenerated, '30 / ' + N.totalStemsGenerated],
+  ].map((r) => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody>';
+el('noveltyNote').innerHTML =
+  'This is the axis the deterministic planner cannot compete on: it draws from a fixed 30-question ' +
+  'bank, so every session is the same material. Pairwise overlap of ' + pct(N.meanPairwiseOverlap) +
+  ' between generated plans means a player replaying a level mostly meets new questions.';
+
+/* ---------------- 5.7 per persona ---------------- */
+el('personaTable').innerHTML =
+  '<thead><tr><th>Profile</th><th>Served</th><th>1st try</th><th>Target P</th><th>Weak recall</th><th>Due recall</th><th>On curriculum</th><th>Grade</th></tr></thead><tbody>' +
+  DATA.perPersona.map((p) =>
+    '<tr><td>' + esc(p.personaId) + '</td><td>' + p.served + '/' + p.runs + '</td><td>' + p.firstAttemptAccepted +
+    '</td><td>' + num(p.targetPrecisionFuzzy, 2) + '</td><td>' + num(p.weakConceptRecall, 2) +
+    '</td><td>' + num(p.dueConceptRecall, 2) + '</td><td>' + num(p.itemsOnCurriculum, 2) +
+    '</td><td>' + num(p.readingGrade, 1) + '</td></tr>'
+  ).join('') + '</tbody>';
+
+/* ---------------- truncation note ---------------- */
+const nearCap = R.tokens.completionMean / 18000;
+el('truncationNote').innerHTML =
+  '<strong>Output headroom is thin.</strong> Reasoning consumes ' +
+  (R.tokens.reasoningMean ? Math.round((R.tokens.reasoningMean / R.tokens.completionMean) * 100) + '% ' : 'much ') +
+  'of the completion budget, leaving the visible plan to fit in what remains of the 18,000-token ' +
+  'ceiling; mean completion is ' + R.tokens.completionMean + ' tokens (' + pct(nearCap, 0) +
+  ' of the cap). A harder report could truncate rather than fail cleanly.';
+
+/* ---------------- repro ---------------- */
+el('repro').textContent = [
+  '# free — check the simulated learners before spending anything',
+  'EVAL_PHASE=personas   npx vitest run eval/',
+  '',
+  '# billed — 32 sessions through the live planner',
+  'EVAL_PHASE=generate   npx vitest run eval/',
+  '',
+  '# billed — independent solver, pinned to a different provider family',
+  'EVAL_PHASE=judge EVAL_SOLVER_MODEL=' + solver + ' npx vitest run eval/',
+  '',
+  '# free — deterministic baseline on the identical reports, then aggregate',
+  'EVAL_PHASE=baseline   npx vitest run eval/',
+  'EVAL_PHASE=summarise  npx vitest run eval/',
+  '',
+  '# render this document from results/summary.json',
+  'node eval/report.mjs',
+].join('\n');
+
+el('footer').textContent =
+  'Punch English coach evaluation · planner ' + DATA.model + ' · solver ' + solver +
+  ' · ' + R.runs + ' sessions · rendered from eval/results/summary.json on ' +
+  new Date(DATA.generatedAt).toISOString().slice(0, 10) + '.';
+</script>

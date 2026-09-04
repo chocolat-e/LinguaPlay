@@ -9,8 +9,10 @@ gets a turn.
 It is a **one-handed** game: a single fist throws every punch, reaching toward
 whichever answer you commit to.
 
-Not VR — mouse and keyboard — but the input layer is built so a webcam tracker
-or an ESP32 motion controller can be dropped in without touching gameplay code.
+You can play it on the keyboard, or with your body: a webcam tracks where you
+are standing and where your arm is, and an ESP32 worn on the fist reports the
+punch and lights up when it lands. Both arrive through the same input layer the
+keyboard uses, so no gameplay code knows which one is driving.
 
 ## The fight
 
@@ -26,8 +28,9 @@ move to an answer → punch → correct   → the monster loses HP
   answer for you.
 - **Level 1 is a diagnostic round.** The monster measures your English and never
   hits back. From level 2 the counter-attacks start.
-- **Blocking is timed.** `Shift` raises your guard for less than a second, so
-  holding it from the start of a wind-up leaves you open when the blow lands.
+- **Blocking is timed.** `Shift` — or, on camera, your palm brought back onto
+  your chest — raises your guard for less than a second, so holding it from the
+  start of a wind-up leaves you open when the blow lands.
 - **Five correct in a row** earns a Word Connect special attack: a short word is
   scattered around you, and connecting its letters in order builds a heavy hit.
   It is spent as a sequence rather than a single punch — a wind-up that drags
@@ -55,13 +58,29 @@ npm run preview    # serve the production build
 npm run lint
 ```
 
+### Play it with the hardware
+
+From the repository root, in three terminals — or just run
+`run_linguaplay.bat`:
+
+```bash
+pip install -r requirements.txt
+python bridge.py             # merges the devices, port 5000
+python "computer vision.py"  # webcam tracking
+cd software && npm run dev   # the game, proxying /bridge to the bridge
+```
+
+Flash `controller.ino` with `API_URL` pointing at this machine's IPv4 address.
+The menu shows which devices are connected; the keyboard keeps working whether
+they are or not. `src/game/input/HARDWARE.md` explains the whole path.
+
 ### Enable the AI curriculum coach
 
 Copy `.env.example` to `.env.local`, then add your OpenRouter API key:
 
 ```dotenv
 OPENROUTER_API_KEY=replace_with_a_new_openrouter_api_key
-OPENROUTER_MODEL=openai/gpt-5.6-terra
+OPENROUTER_MODEL=google/gemini-3.1-pro-preview
 ```
 
 Restart `npm run dev` after changing the environment file. The key is read only
@@ -85,7 +104,7 @@ Adaptation is deliberately split across two timescales:
 2. **At level end:** a persistent PunchKT-style learner model creates a report
    containing concept mastery and uncertainty, chosen-distractor misconception
    evidence, retention/forgetting estimates, and separate punch timing signals.
-3. **Between levels:** OpenRouter routes `openai/gpt-5.6-terra`, which returns strict structured data containing
+3. **Between levels:** OpenRouter routes `google/gemini-3.1-pro-preview`, which returns strict structured data containing
    an evidence-grounded weakness explanation, a curriculum plan, and exactly 30
    new questions (10 easy, 10 medium, and 10 hard). The server checks shape, answer uniqueness, misconception
    alignment, duplicate stems, and the declared difficulty mix; it asks once
@@ -109,6 +128,12 @@ estimated retention has decayed between visits to be scheduled for review.
 | `Shift` | Raise your guard |
 | Mouse click | Punch a block — still only counts from its lane |
 | `Esc` | Pause / resume |
+
+With the hardware, the same four things are done with your body: step left and
+right to walk, throw the fist to punch, bring your palm back onto your chest to
+guard, and roll your wrist to steer the kart. The controller's stick and button
+are for the menus — flick to move the highlight, press to choose, and press
+during a round to pause.
 
 ## How it scores
 
@@ -170,7 +195,9 @@ src/
 │       ├── PunchEvent.ts       the one contract every input device speaks
 │       ├── PlayerMotion.ts     stance, hand reach, and guard timing
 │       ├── InputManager.ts     fans InputSources into one punch stream
-│       └── HARDWARE.md         how to add an ESP32 / MediaPipe source
+│       ├── BridgeSource.ts     the ESP32 and the webcam, as one InputSource
+│       ├── HardwareFeedback.ts game events → the controller's LED and buzzer
+│       └── HARDWARE.md         how the devices are wired in, and how to add one
 │
 ├── components/
 │   ├── scene/                  React Three Fiber — reads game state in useFrame
@@ -215,9 +242,25 @@ written, and there is still exactly one publisher feeding the HUD.
 - The crosshair writes its own `transform` on `pointermove` rather than holding
   React state.
 
-### Adding a physical punch controller
+### How the physical devices attach
 
-Everything the game reacts to arrives as a `PunchEvent`:
+The ESP32 and the webcam both push their state to `bridge.py`, and one
+`BridgeSource` polls the merged snapshot and turns it into the same calls the
+keyboard makes. The camera drives the body, the hand, and the guard; the
+controller drives the punch and — with no camera — the steering.
+
+The split is by gesture, not by device. Everything that happens *during* a
+round is read off the body, because the board is strapped to the fist that is
+throwing the punches: its joystick and button are under a closed thumb until
+the round ends, so they drive the menus and the pause screen instead, through
+`onUi` rather than through the input layer.
+
+Feedback runs back along the reply to a push the controller was making anyway,
+so the LED, the buzzer, and the OLED cost no extra connection. `HardwareFeedback`
+posts a semantic event and `bridge.py` decides what it looks like.
+
+Adding a third device changes none of that. Everything the game reacts to
+arrives as a `PunchEvent`:
 
 ```ts
 { laneIndex, direction, hand, timestamp, confidence, power, source }

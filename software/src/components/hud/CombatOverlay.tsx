@@ -6,6 +6,7 @@ import {
 } from '../../game/constants';
 import type { GameEvents } from '../../game/events';
 import { game } from '../../game/instance';
+import { useBridgeStatus } from '../../hooks/useBridgeStatus';
 import { useGameEvent } from '../../hooks/useGameEvent';
 import { useCombat, useKartChase, useWordConnect } from '../../hooks/useGameState';
 
@@ -25,6 +26,10 @@ interface Banner {
  */
 export function CombatOverlay() {
   const combat = useCombat();
+  // The prompt has to name the control the player actually has. On camera the
+  // guard is a gesture, and telling someone standing two metres back to press
+  // Shift is telling them to lose the round.
+  const onCamera = useBridgeStatus().vision;
   const [banner, setBanner] = useState<Banner | null>(null);
   const seq = useRef(0);
 
@@ -104,7 +109,8 @@ export function CombatOverlay() {
             />
           </div>
           <p className={`charge__prompt${urgent ? ' is-live' : ''}`}>
-            {urgent ? 'DEFEND NOW' : 'Hold your nerve…'} · <kbd>Shift</kbd>
+            {urgent ? 'DEFEND NOW' : 'Hold your nerve…'} ·{' '}
+            {onCamera ? 'palm to your chest' : <kbd>Shift</kbd>}
           </p>
         </div>
       )}
