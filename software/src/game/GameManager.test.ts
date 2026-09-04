@@ -17,6 +17,7 @@ import {
   WORD_CONNECT_STREAK,
   WORD_CONNECT_WORDS,
 } from './constants';
+import type { InputControls } from './input/InputManager';
 import type { KartBlockRuntime, MoveDirection } from './types';
 
 const FRAME = 1 / 60;
@@ -81,6 +82,26 @@ function answerCorrectly(game: GameManager): void {
 /** Puts the player on level 2+, where the monster is allowed to hit back. */
 function promoteToLevelTwo(game: GameManager): void {
   game.learner.completeSession();
+}
+
+/**
+ * The `InputControls` a real device is handed, so a test can ask for a block
+ * the way the camera does.
+ *
+ * The guard window is enforced on this path and not inside `PlayerMotion`, so
+ * a test that reaches for `motion.raiseGuard()` walks straight past it. Call
+ * once per game: `addSource` ignores an id it already holds.
+ */
+function deviceControls(game: GameManager): InputControls {
+  const captured: InputControls[] = [];
+  game.input.addSource({
+    id: 'test-device',
+    attach: (_emit, controls) => void captured.push(controls),
+    detach: () => {},
+  });
+  const controls = captured[0];
+  if (!controls) throw new Error('The input manager handed out no controls.');
+  return controls;
 }
 
 /** Runs a round up to the point where the Word Connect mini game opens. */
@@ -283,6 +304,44 @@ describe('monster attacks from level 2', () => {
 
     const snapshot = game.getSnapshot();
     expect(snapshot.combat.playerHp).toBe(snapshot.combat.playerMaxHp - PLAYER_HIT_DAMAGE);
+  });
+
+  it('has no block to offer while the player is answering', () => {
+    startRound(game);
+    const controls = deviceControls(game);
+
+    // The camera reads the guard off the same chest circle it reads a punch
+    // off, so a fist resting after one looks like a block on every question.
+    // Answering is punching; there is nothing here to defend against.
+    expect(controls.guard()).toBe(false);
+    expect(game.input.isGuarding()).toBe(false);
+
+    moveTo(game, wrongLane(game));
+    punch(game);
+
+    // And the refusal cost nothing. This is the half that matters: a phantom
+    // block would have spent the cooldown, and the guard the player actually
+    // throws a moment later would have been the one refused.
+    advance(game, MONSTER_CHARGE_SECONDS - GUARD_ACTIVE_SECONDS * 0.5);
+    expect(controls.guard()).toBe(true);
+    advance(game, GUARD_ACTIVE_SECONDS);
+
+    const snapshot = game.getSnapshot();
+    expect(snapshot.combat.playerHp).toBe(snapshot.combat.playerMaxHp);
+  });
+
+  it('shuts the window again once the blow has landed', () => {
+    startRound(game);
+    const controls = deviceControls(game);
+
+    moveTo(game, wrongLane(game));
+    punch(game);
+    expect(controls.guard()).toBe(true);
+
+    // Through the strike and back to the next question.
+    advance(game, MONSTER_CHARGE_SECONDS + 2.5);
+    expect(game.getSnapshot().combat.phase).not.toBe('MONSTER_CHARGING');
+    expect(controls.guard()).toBe(false);
   });
 
   it('returns to answering after the strike resolves', () => {

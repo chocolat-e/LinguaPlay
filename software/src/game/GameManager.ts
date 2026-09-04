@@ -392,6 +392,8 @@ export class GameManager {
 
     this.input.setEnabled(true);
     this.input.setAimLane(null);
+    // A fight abandoned mid-wind-up must not hand the next one an open window.
+    this.input.setGuardWindow(false);
     this.input.motion.reset();
   }
 
@@ -975,6 +977,9 @@ export class GameManager {
 
   private beginMonsterAttack(): void {
     this.phase = 'MONSTER_CHARGING';
+    // The one stretch of the fight where a block is a move the player has.
+    // Everywhere else the gesture is refused outright — see setGuardWindow.
+    this.input.setGuardWindow(true);
     this.monster.beginCharge(this.elapsed);
     this.audio.play('charge');
     this.bus.emit('monsterPhase', {
@@ -989,6 +994,9 @@ export class GameManager {
    */
   private resolveMonsterStrike(): void {
     const blocked = this.input.isGuarding();
+    // Read first, then shut: the blow is the last moment a guard can matter,
+    // and from here the player is answering questions again.
+    this.input.setGuardWindow(false);
     this.phase = 'MONSTER_STRIKING';
     this.strikeRemaining = MONSTER_STRIKE_SECONDS;
     this.bus.emit('monsterPhase', { phase: 'STRIKING', chargeSeconds: 0 });

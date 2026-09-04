@@ -246,8 +246,15 @@ one extra verb, `press` during `PLAYING`, which pauses. Resuming needs no
 second meaning: the pause screen focuses Resume, so the next press clicks it.
 
 A held stick reports the same direction at every poll, so only a *change* of
-direction steps the focus. `UP`/`LEFT` step back, `DOWN`/`RIGHT` step on, and a
+direction steps the focus. Up and left step back, down and right step on, and a
 stick already pushed when the game starts arms rather than moving anything.
+
+One correction is applied on the way in: the stick's X pot is mounted
+backwards, so a push to the left arrives from the firmware as `RIGHT`, and
+`JOY_X_FLIP` in `BridgeSource` turns it round before anything reads it. Y is
+untouched. The fix lives here rather than in `controller.ino` so it ships with
+a restart instead of a reflash — the cost being that the OLED and `hwtest.py`
+still name the raw direction, which is the honest reading to have on the board.
 
 The stick moves focus and the button clicks; neither *edits*. The volume and
 speed sliders on the settings screen are therefore mouse and keyboard only —
@@ -258,8 +265,13 @@ React's back, which is a worse thing to own than a screen that wants a mouse.
 ### Blocking is a gesture the camera reads
 
 `computer vision.py` tracks a palm — the midpoint of the index and pinky
-knuckles and the wrist — and raises the guard while it sits inside a circle
-centred on the chest, `GUARD_DISTANCE` shoulder widths across.
+knuckles and the wrist — and raises the guard while it sits inside the circle
+centred on the chest, `PUNCH_DISTANCE` shoulder widths across.
+
+That is the *same* circle the punch is judged against, not a second one drawn
+inside it. Both gestures cross the same ring — entering at `PUNCH_DISTANCE`,
+releasing at `READY_DISTANCE` — so the tracking window shows one zone and the
+player has one boundary to learn instead of two.
 
 The circle is drawn on the tracking window, so the gesture can be checked
 without the game running. Two details keep it from firing on its own:
@@ -276,6 +288,28 @@ counter exists here: the guard is *held* by the player, and a 50 Hz poll of a
 held pose would otherwise raise fifty blocks a second. One rise is one block,
 and `raiseGuard` still drops it after `GUARD_ACTIVE_SECONDS` — so standing with
 your hands up does not block, and the timing is still yours to get right.
+
+#### The block is only offered during the wind-up
+
+Answering a question is punching. A block is a move the player has for exactly
+one stretch of the fight — the monster's counter-attack, which only follows a
+wrong answer above the diagnostic level — so `InputManager.setGuardWindow` is
+opened by `beginMonsterAttack` and shut again the instant the blow resolves.
+Outside it, `controls.guard()` returns false and nothing happens at all.
+
+The gate lives on that path rather than in `GameManager` because of where the
+guard now comes from. Punch and block share one circle on the chest, so a fist
+that lingers on its way back from a punch *is* the guard gesture. Left
+ungated, every retracted punch would raise a phantom block mid-question — and
+the cost is not the stray sound. `raiseGuard` spends `GUARD_ACTIVE_SECONDS` +
+`GUARD_COOLDOWN_SECONDS` of lockout, which is longer than the wind-up's
+`DEFENSE_PROMPT_SECONDS`, so the phantom would still be on cooldown when the
+real blow arrived and the player would eat a hit they had defended against.
+
+Within the window the timing is untouched: the guard drops on its own after
+`GUARD_ACTIVE_SECONDS`, so blocking the moment the monster starts winding up
+is still too early. `GameManager.test.ts` pins both halves — refused while
+answering, and the refusal costing nothing when the real block comes.
 
 ### Counters, not flags
 

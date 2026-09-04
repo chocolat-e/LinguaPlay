@@ -49,7 +49,7 @@ export interface VisionPacket {
   handY?: number;
   direction?: string | null;
   punchCount?: number;
-  /** True while the palm is parked inside the guard circle on the chest. */
+  /** True while the palm is parked inside the punch/guard circle on the chest. */
   guard?: boolean;
   /** Monotonic count of guards raised. The event the game acts on. */
   guardCount?: number;
@@ -107,6 +107,27 @@ const JOY_STEP: Record<string, number> = {
   RIGHT: 1,
   DOWN: 1,
   CENTER: 0,
+};
+
+/**
+ * The stick's X axis reads backwards, so the packet is corrected on arrival.
+ *
+ * Pushing the stick left reports `RIGHT` and pushing it right reports `LEFT`:
+ * the module sits on the board with its X pot turned the other way round, and
+ * the firmware faithfully passes on what the ADC gives it. Fixing it here
+ * rather than in `controller.ino` keeps it in the half of the system that is
+ * restarted every run instead of reflashed, at the cost of the OLED still
+ * naming the raw direction — which is the reading you want on the board
+ * anyway, because that is the one that says what the pin actually did.
+ *
+ * Only X is turned around; UP and DOWN come off the other pot and are already
+ * the right way up. The swap is a bijection, so the held-stick edge detection
+ * below is unaffected — a direction that has not changed still maps to a
+ * direction that has not changed.
+ */
+const JOY_X_FLIP: Record<string, string> = {
+  LEFT: 'RIGHT',
+  RIGHT: 'LEFT',
 };
 
 /**
@@ -262,7 +283,7 @@ export class BridgeReader {
   }
 
   /**
-   * The moment the palm settles inside the guard circle, from the camera.
+   * The moment the palm settles inside the punch/guard circle, from the camera.
    *
    * The rise is the event, not the hold: `raiseGuard` puts the guard up for
    * `GUARD_ACTIVE_SECONDS` and then drops it, so a player who simply stands
@@ -290,7 +311,8 @@ export class BridgeReader {
    * reason a counter's first sighting fires nothing.
    */
   private readUi(controller: ControllerPacket): BridgeUiIntent {
-    const joy = typeof controller.joy === 'string' ? controller.joy : 'CENTER';
+    const raw = typeof controller.joy === 'string' ? controller.joy : 'CENTER';
+    const joy = JOY_X_FLIP[raw] ?? raw;
     const previous = this.lastJoy;
     this.lastJoy = joy;
 

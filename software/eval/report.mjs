@@ -18,6 +18,9 @@ const readJson = (name) => JSON.parse(readFileSync(join(RESULTS_DIR, name), 'utf
 
 const summary = readJson('summary.json');
 const baseline = existsSync(join(RESULTS_DIR, 'baseline.json')) ? readJson('baseline.json') : null;
+const disagreements = existsSync(join(RESULTS_DIR, 'disagreements.json'))
+  ? readJson('disagreements.json')
+  : [];
 
 /** Wilson score interval — same estimator the summariser prints. */
 function wilson(successes, total) {
@@ -51,6 +54,14 @@ const view = {
   novelty: summary.novelty,
   judge: summary.judge,
   perPersona: summary.perPersona,
+  // Only the items where the solver's answer differed from the key: the
+  // candidate item faults that a human still has to adjudicate.
+  disagreements: disagreements
+    .filter((item) => !item.agreed)
+    .map(({ runId, sequence, difficulty, category, question, answers, key, choice, concern }) => ({
+      runId, sequence, difficulty, category, question, answers, key, choice, concern,
+    })),
+  concernOnlyCount: disagreements.filter((item) => item.agreed).length,
   positions: {
     llm: positionProfile(llmPerRun),
     local: positionProfile(localPerPlan),

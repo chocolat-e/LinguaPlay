@@ -161,11 +161,17 @@
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.warn { color: var(--warn); } }
 
   /* ---------- stat tiles ---------- */
+  /* Borders on the tiles rather than a gap-coloured backdrop: with five tiles
+     the last row is short, and a backdrop would show as an empty grey cell. */
   .tiles {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 1.6rem 0 1.9rem;
+    gap: 0; background: var(--surface); margin: 1.6rem 0 1.9rem;
+    border-top: 1px solid var(--rule); border-left: 1px solid var(--rule);
   }
-  .tile { background: var(--surface); padding: 1rem 1.05rem 1.05rem; }
+  .tile {
+    background: var(--surface); padding: 1rem 1.05rem 1.05rem;
+    border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  }
   .tile .k {
     font-family: var(--mono); font-size: .655rem; letter-spacing: .1em; text-transform: uppercase;
     color: var(--ink-3); margin: 0 0 .5rem;
@@ -188,17 +194,28 @@
   .row { display: grid; grid-template-columns: minmax(7rem, 13rem) 1fr; gap: .85rem; align-items: center; }
   .row .rl { font-family: var(--mono); font-size: .73rem; color: var(--ink-2); text-align: right; line-height: 1.3; }
   .bars { display: grid; gap: 2px; }
-  .bar { display: flex; align-items: center; gap: .45rem; min-width: 0; }
-  .bar .fill { height: 12px; border-radius: 0 4px 4px 0; flex: none; min-width: 1px; }
+  /* The value label gets its own fixed column rather than trailing the bar in
+     a flex row. Two reasons: every bar is then scaled against an identical
+     track, so rows stay comparable; and a 100%% bar can no longer push its
+     label past the edge, which is what clipped the right of every figure in
+     print. */
+  .bar {
+    display: grid; grid-template-columns: 1fr 2.9rem; gap: .45rem;
+    align-items: center; min-width: 0;
+  }
+  .bar .track { display: block; height: 12px; min-width: 0; }
+  .bar .fill { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 1px; }
   .bar .bv {
     font-family: var(--mono); font-size: .705rem; color: var(--ink-2);
-    font-variant-numeric: tabular-nums; flex: none;
+    font-variant-numeric: tabular-nums;
   }
   .axis {
     display: flex; justify-content: space-between; font-family: var(--mono); font-size: .655rem;
     color: var(--ink-3); border-top: 1px solid var(--rule); padding-top: .3rem; margin-top: .55rem;
   }
-  .axis.offset { margin-left: calc(13rem + .85rem); }
+  /* Align the scale with the bar track: past the label column on the left,
+     stopping short of the value column on the right. */
+  .axis.offset { margin-left: calc(13rem + .85rem); margin-right: calc(2.9rem + .45rem); }
   @media (max-width: 40rem) {
     .row { grid-template-columns: 1fr; gap: .25rem; }
     .row .rl { text-align: left; }
@@ -258,6 +275,63 @@
     font-family: var(--mono); font-size: .71rem; color: var(--ink-3);
   }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  /* ---------- print / PDF ----------
+     The PDF is a print of this page, so it keeps the screen design; what
+     changes is pagination, and forcing the light palette so the document does
+     not inherit whichever theme the printing browser happened to be in. */
+  @page { size: A4; margin: 16mm 14mm 18mm; }
+  @media print {
+    :root {
+      color-scheme: light;
+      --page: #ffffff; --surface: #ffffff; --surface-2: #f4f3ef;
+      --ink: #12120f; --ink-2: #46453f; --ink-3: #6f6d66;
+      --rule: #d9d8d0; --rule-strong: #b4b3a8;
+      --accent: #17508f; --series-llm: #2a78d6; --series-base: #d95926;
+    }
+    /* Bars and tiles are the content here, not decoration — keep their fills. */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { background: #fff; font-size: 10.5pt; line-height: 1.5; }
+    .sheet { max-width: none; border: 0; padding: 0; }
+    .masthead { padding-top: 0; }
+    h1 { font-size: 24pt; }
+    h2 { font-size: 14pt; }
+    h3 { font-size: 11.5pt; }
+    table { font-size: 8.4pt; }
+    .tile .v { font-size: 20pt; }
+
+    /* Keep a heading with the thing it introduces, and never split a figure. */
+    section { padding-top: 1.4rem; }
+    h2, h3 { break-after: avoid-page; page-break-after: avoid; }
+    .block, .tiles, .tile, .ci-row, .row, .deflist dt, .callout,
+    .findings > li, pre, tr { break-inside: avoid-page; page-break-inside: avoid; }
+    /* Chrome honours break-inside unreliably once a grid is involved — adding
+       it to the chart changed the output not at all — so the figures get a
+       page of their own to start on instead, which Chrome does respect. Only
+       headings that actually introduce a chart are affected. */
+    h3:has(+ .block .chart), h3:has(+ .block .ci) { break-before: page; page-break-before: always; }
+    .chart, .ci { break-inside: avoid-page; page-break-inside: avoid; }
+    .legend { break-after: avoid-page; page-break-after: avoid; }
+    .block-title { break-after: avoid-page; page-break-after: avoid; }
+    table { break-inside: auto; table-layout: auto; width: 100%; }
+    thead { display: table-header-group; }
+    /* On screen a wide table scrolls inside its own box; on paper there is
+       nowhere to scroll, so cells must wrap instead of being cut off at the
+       right edge. The per-profile table is eight columns wide. */
+    .scroll { overflow: visible; }
+    th, td { white-space: normal; padding: .4rem .45rem; }
+    /* Cells may break inside a long token (a run id, a concept name); headings
+       must not — "anywhere" turned SERVED into "SERVE D". */
+    td { overflow-wrap: anywhere; }
+    th { overflow-wrap: normal; word-break: keep-all; }
+    th:first-child, td:first-child { min-width: 0; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    /* Give the bars more of the narrower paper width than the label column. */
+    .row, .ci-row { grid-template-columns: 9.5rem 1fr; }
+    .axis.offset { margin-left: calc(9.5rem + .85rem); }
+    footer { break-inside: avoid-page; }
+    a { color: var(--ink); text-decoration: none; }
+  }
 </style>
 
 <div class="sheet">
@@ -428,6 +502,14 @@
     <div class="block scroll"><table id="judgeTable"></table></div>
     <p id="judgeNote"></p>
 
+    <h3>5.3.1 Every disagreement, adjudicated</h3>
+    <p id="adjIntro"></p>
+    <div id="adjudication"></div>
+    <div class="callout">
+      <p class="ct">Finding</p>
+      <p id="adjFinding"></p>
+    </div>
+
     <h3>5.4 Answer-position bias</h3>
     <div class="block">
       <div class="legend">
@@ -562,7 +644,7 @@
 </div>
 
 <script>
-const DATA = {"generatedAt":"2026-09-04T03:30:07.474Z","model":"google/gemini-3.1-pro-preview","repeats":4,"reliability":{"runs":32,"httpOk":13,"attempts":52,"schemaValidAttempts":13,"firstAttemptAccepted":12,"firstAttemptSchemaValid":12,"retryRecovered":1,"retryAttempted":20,"served":13,"fallback":19,"issueKindCounts":{},"latencySeconds":{"mean":27.7,"p50":0.49,"p95":90.5,"max":195.64},"endToEndSeconds":{"mean":45.02,"p95":91.87},"tokens":{"promptMean":5798,"completionMean":12938,"reasoningMean":5707},"costUsd":{"total":2.16907,"perAttempt":0.04171288461538462,"perServedPlan":0.16685153846153847}},"llm":{"targetPrecisionFuzzy":{"mean":0.6615,"sd":0.1682,"min":0.3333333333333333,"max":0.8333333333333334,"n":13},"targetPrecisionStrict":{"mean":0.6615,"sd":0.1682,"min":0.3333333333333333,"max":0.8333333333333334,"n":13},"weakConceptRecall":{"mean":0.7885,"sd":0.2247,"min":0.5,"max":1,"n":13},"dueConceptRecall":{"mean":0.9538,"sd":0.1198,"min":0.6,"max":1,"n":13},"misconceptionCoverage":{"mean":0.8255,"sd":0.1572,"min":0.5,"max":1,"n":13},"itemsOnCurriculum":{"mean":0.7205,"sd":0.1482,"min":0.5,"max":1,"n":13},"novelStemRate":{"mean":0.9923,"sd":0.0146,"min":0.9666666666666667,"max":1,"n":13},"readingGrade":{"mean":6.8638,"sd":1.1143,"min":5.13,"max":8.94,"n":13},"categoriesUsed":{"mean":5.6923,"sd":0.6304,"min":4,"max":6,"n":13},"distinctMisconceptionRate":{"mean":0.9513,"sd":0.0899,"min":0.7333333333333333,"max":1,"n":13},"genericMisconceptionRate":{"mean":0.0051,"sd":0.0185,"min":0,"max":0.06666666666666667,"n":13},"positionChiSquare":{"mean":0.3985,"sd":0.4629,"min":0.13,"max":1.73,"n":13},"correctAtIndex3":{"mean":7,"sd":0.4082,"min":6,"max":8,"n":13},"longestOptionIsCorrect":{"mean":8.8462,"sd":1.4051,"min":7,"max":11,"n":13},"nearDuplicatePairs":{"mean":0,"sd":0,"min":0,"max":0,"n":13},"meanStemWords":{"mean":9.6015,"sd":1.4146,"min":7.1,"max":12.27,"n":13},"positionBalancedPlans":13,"plansWithBannedTerm":0,"plansWithDiscouragedTerm":0,"bannedTermHits":[],"discouragedTermHits":[],"plans":13},"local":{"targetPrecisionFuzzy":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"targetPrecisionStrict":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"weakConceptRecall":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"dueConceptRecall":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"misconceptionCoverage":{"mean":0.3131,"sd":0.2228,"min":0,"max":1,"n":32},"itemsOnCurriculum":{"mean":0.1708,"sd":0.0203,"min":0.13333333333333333,"max":0.26666666666666666,"n":32},"novelStemRate":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"readingGrade":{"mean":5.2963,"sd":0.3816,"min":4.12,"max":6.15,"n":32},"categoriesUsed":{"mean":6,"sd":0,"min":6,"max":6,"n":32},"distinctMisconceptionRate":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"genericMisconceptionRate":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"positionChiSquare":{"mean":27.07,"sd":0,"min":27.07,"max":27.07,"n":32},"correctAtIndex3":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"longestOptionIsCorrect":{"mean":10,"sd":0,"min":10,"max":10,"n":32},"nearDuplicatePairs":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"meanStemWords":{"mean":6.1,"sd":0,"min":6.1,"max":6.1,"n":32},"positionBalancedPlans":0,"plansWithBannedTerm":0,"plansWithDiscouragedTerm":0,"bannedTermHits":[],"discouragedTermHits":[],"plans":32},"novelty":{"meanPairwiseOverlap":0.003,"maxPairwiseOverlap":0.0333,"uniqueStemsAcrossAllPlans":383,"totalStemsGenerated":390},"judge":null,"perPersona":[{"personaId":"P1-cold-start","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.7,"weakConceptRecall":0.813,"dueConceptRecall":0.95,"itemsOnCurriculum":0.642,"readingGrade":6.9},{"personaId":"P2-struggling-beginner","runs":4,"served":3,"firstAttemptAccepted":3,"targetPrecisionFuzzy":0.422,"weakConceptRecall":0.5,"dueConceptRecall":0.867,"itemsOnCurriculum":0.744,"readingGrade":7.03},{"personaId":"P3-grammar-gaps","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P4-advanced","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P5-motor-misses","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P6-early-puncher","runs":4,"served":0,"firstAttemptAccepted":0,"targetPrecisionFuzzy":null,"weakConceptRecall":null,"dueConceptRecall":null,"itemsOnCurriculum":null,"readingGrade":null},{"personaId":"P7-returning-decayed","runs":4,"served":2,"firstAttemptAccepted":1,"targetPrecisionFuzzy":0.733,"weakConceptRecall":1,"dueConceptRecall":1,"itemsOnCurriculum":0.733,"readingGrade":6.3},{"personaId":"P8-repeated-misconception","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.767,"weakConceptRecall":0.875,"dueConceptRecall":1,"itemsOnCurriculum":0.775,"readingGrade":6.99}],"positions":{"llm":[7.846153846153846,7.6923076923076925,7.461538461538462,7],"local":[10,18,2,0],"expected":7.5},"wilson":{"served":[0.25519634742921493,0.5773997525266626],"firstAttempt":[0.2293388721551334,0.5474559277860367],"schemaValid":[0.15233153802596913,0.3820645805412581],"judgeLlm":null,"judgeAuthored":null}};
+const DATA = {"generatedAt":"2026-09-04T03:36:30.383Z","model":"google/gemini-3.1-pro-preview","repeats":4,"reliability":{"runs":32,"httpOk":32,"attempts":32,"schemaValidAttempts":32,"firstAttemptAccepted":32,"firstAttemptSchemaValid":32,"retryRecovered":0,"retryAttempted":0,"served":32,"fallback":0,"issueKindCounts":{},"latencySeconds":{"mean":99.78,"p50":88.59,"p95":194.73,"max":200.36},"endToEndSeconds":{"mean":99.79,"p95":194.77},"tokens":{"promptMean":5854,"completionMean":13550,"reasoningMean":6523},"costUsd":{"total":5.5491366,"perAttempt":0.17341051875,"perServedPlan":0.17341051875}},"llm":{"targetPrecisionFuzzy":{"mean":0.5844,"sd":0.2292,"min":0,"max":1,"n":32},"targetPrecisionStrict":{"mean":0.5844,"sd":0.2292,"min":0,"max":1,"n":32},"weakConceptRecall":{"mean":0.5703,"sd":0.3252,"min":0,"max":1,"n":32},"dueConceptRecall":{"mean":0.9188,"sd":0.1595,"min":0.4,"max":1,"n":32},"misconceptionCoverage":{"mean":0.7467,"sd":0.1742,"min":0.375,"max":1,"n":32},"itemsOnCurriculum":{"mean":0.6469,"sd":0.1965,"min":0.36666666666666664,"max":0.9666666666666667,"n":32},"novelStemRate":{"mean":0.9906,"sd":0.0194,"min":0.9333333333333333,"max":1,"n":32},"readingGrade":{"mean":7.1341,"sd":0.7979,"min":5.56,"max":8.93,"n":32},"categoriesUsed":{"mean":5.7813,"sd":0.4908,"min":4,"max":6,"n":32},"distinctMisconceptionRate":{"mean":0.9635,"sd":0.0725,"min":0.7,"max":1,"n":32},"genericMisconceptionRate":{"mean":0.0031,"sd":0.0177,"min":0,"max":0.1,"n":32},"positionChiSquare":{"mean":0.1891,"sd":0.1492,"min":0.13,"max":0.67,"n":32},"correctAtIndex3":{"mean":7.0313,"sd":0.4004,"min":6,"max":8,"n":32},"longestOptionIsCorrect":{"mean":8.2813,"sd":2.9538,"min":2,"max":13,"n":32},"nearDuplicatePairs":{"mean":0.0625,"sd":0.3536,"min":0,"max":2,"n":32},"meanStemWords":{"mean":9.3909,"sd":1.5595,"min":6.83,"max":12.67,"n":32},"positionBalancedPlans":32,"plansWithBannedTerm":1,"plansWithDiscouragedTerm":0,"bannedTermHits":[{"term":"prompt","field":"curriculum.sessionStrategy","excerpt":"ward vocabulary. Keep the pace manageable but prompt the player to move faster to avoid running"}],"discouragedTermHits":[],"plans":32},"local":{"targetPrecisionFuzzy":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"targetPrecisionStrict":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"weakConceptRecall":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"dueConceptRecall":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"misconceptionCoverage":{"mean":0.3131,"sd":0.2228,"min":0,"max":1,"n":32},"itemsOnCurriculum":{"mean":0.1708,"sd":0.0203,"min":0.13333333333333333,"max":0.26666666666666666,"n":32},"novelStemRate":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"readingGrade":{"mean":5.2963,"sd":0.3816,"min":4.12,"max":6.15,"n":32},"categoriesUsed":{"mean":6,"sd":0,"min":6,"max":6,"n":32},"distinctMisconceptionRate":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"genericMisconceptionRate":{"mean":1,"sd":0,"min":1,"max":1,"n":32},"positionChiSquare":{"mean":27.07,"sd":0,"min":27.07,"max":27.07,"n":32},"correctAtIndex3":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"longestOptionIsCorrect":{"mean":10,"sd":0,"min":10,"max":10,"n":32},"nearDuplicatePairs":{"mean":0,"sd":0,"min":0,"max":0,"n":32},"meanStemWords":{"mean":6.1,"sd":0,"min":6.1,"max":6.1,"n":32},"positionBalancedPlans":0,"plansWithBannedTerm":0,"plansWithDiscouragedTerm":0,"bannedTermHits":[],"discouragedTermHits":[],"plans":32},"novelty":{"meanPairwiseOverlap":0.0068,"maxPairwiseOverlap":0.1333,"uniqueStemsAcrossAllPlans":887,"totalStemsGenerated":960},"judge":{"solverModel":"openai/gpt-5.6-terra","costUsd":0.4312705000000001,"failures":[],"llm":{"total":960,"agreed":956,"concerns":14,"byDifficulty":{"easy":{"total":320,"agreed":320},"medium":{"total":320,"agreed":318},"hard":{"total":320,"agreed":318}},"concernKinds":{"none":946,"multiple-correct":12,"no-correct":1,"ambiguous-stem":1}},"authoredControl":{"total":30,"agreed":30,"concerns":1}},"perPersona":[{"personaId":"P1-cold-start","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.683,"weakConceptRecall":0.75,"dueConceptRecall":0.85,"itemsOnCurriculum":0.692,"readingGrade":7.2},{"personaId":"P2-struggling-beginner","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.296,"weakConceptRecall":0.188,"dueConceptRecall":0.85,"itemsOnCurriculum":0.633,"readingGrade":6.34},{"personaId":"P3-grammar-gaps","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.617,"weakConceptRecall":0.5,"dueConceptRecall":0.8,"itemsOnCurriculum":0.442,"readingGrade":7.63},{"personaId":"P4-advanced","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.492,"weakConceptRecall":0.625,"dueConceptRecall":1,"itemsOnCurriculum":0.733,"readingGrade":7.75},{"personaId":"P5-motor-misses","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.663,"weakConceptRecall":0.625,"dueConceptRecall":0.9,"itemsOnCurriculum":0.642,"readingGrade":7.1},{"personaId":"P6-early-puncher","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.525,"weakConceptRecall":0.313,"dueConceptRecall":0.95,"itemsOnCurriculum":0.567,"readingGrade":6.74},{"personaId":"P7-returning-decayed","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.692,"weakConceptRecall":0.875,"dueConceptRecall":1,"itemsOnCurriculum":0.908,"readingGrade":7.7},{"personaId":"P8-repeated-misconception","runs":4,"served":4,"firstAttemptAccepted":4,"targetPrecisionFuzzy":0.708,"weakConceptRecall":0.688,"dueConceptRecall":1,"itemsOnCurriculum":0.558,"readingGrade":6.62}],"disagreements":[{"runId":"R20-P5-motor-misses","sequence":23,"difficulty":"hard","category":"grammar","question":"___ you need help, please call me.","answers":["Should","If","Would","Had"],"key":0,"choice":1,"concern":"multiple-correct"},{"runId":"R27-P7-returning-decayed","sequence":14,"difficulty":"medium","category":"grammar","question":"Choose the correct imaginary situation.","answers":["Had I time, I would read it.","Were I to have time, I would read it.","Have I time, I will read it.","Was I having time, I read it."],"key":1,"choice":0,"concern":"multiple-correct"},{"runId":"R27-P7-returning-decayed","sequence":16,"difficulty":"medium","category":"sentence","question":"Never before ___ felt so confident.","answers":["he had","he has","had he","has he"],"key":2,"choice":3,"concern":"multiple-correct"},{"runId":"R25-P7-returning-decayed","sequence":24,"difficulty":"hard","category":"sentence","question":"Rarely ___ so happy to see someone.","answers":["he is","is he","he was","was he"],"key":3,"choice":1,"concern":"multiple-correct"}],"concernOnlyCount":11,"positions":{"llm":[7.9375,7.875,7.15625,7.03125],"local":[10,18,2,0],"expected":7.5},"wilson":{"served":[0.8928208002353197,1],"firstAttempt":[0.8928208002353197,1],"schemaValid":[0.8928208002353197,1],"judgeLlm":[0.9893358007539648,0.9983785076811175],"judgeAuthored":[0.886486605238548,1]}};
 
 const pct = (x, digits = 1) => (Number.isFinite(x) ? (x * 100).toFixed(digits) + '%' : 'n/a');
 const num = (x, digits = 2) => (Number.isFinite(x) ? x.toFixed(digits) : 'n/a');
@@ -584,6 +666,7 @@ el('nRuns').textContent = DATA.reliability.runs;
 
 /* ---------------- headline tiles ---------------- */
 const R = DATA.reliability;
+const L = DATA.llm, B = DATA.local;
 const tiles = [
   { k: 'Plan served', v: pct(R.served / R.runs, 0), n: R.served + ' of ' + R.runs + ' sessions' },
   { k: 'Accepted first try', v: pct(R.firstAttemptAccepted / R.runs, 0), n: 'no repair retry needed' },
@@ -591,10 +674,13 @@ const tiles = [
   { k: 'Cost per plan', v: '$' + R.costUsd.perServedPlan.toFixed(3), n: 'per served plan' },
 ];
 if (DATA.judge) {
+  // One decimal, deliberately: 956/960 rounds to "100%" at zero decimals, which
+  // would claim perfect agreement on a page that then adjudicates four misses.
   tiles.push({
     k: 'Solver agreement',
-    v: pct(DATA.judge.llm.agreed / DATA.judge.llm.total, 0),
-    n: 'authored control ' + pct(DATA.judge.authoredControl.agreed / DATA.judge.authoredControl.total, 0),
+    v: pct(DATA.judge.llm.agreed / DATA.judge.llm.total, 1),
+    n: DATA.judge.llm.agreed + '/' + DATA.judge.llm.total + ' · control ' +
+       pct(DATA.judge.authoredControl.agreed / DATA.judge.authoredControl.total, 0),
   });
 }
 el('headline').innerHTML = tiles.map((t) =>
@@ -602,13 +688,36 @@ el('headline').innerHTML = tiles.map((t) =>
   (t.u ? '<span class="u">' + esc(t.u) + '</span>' : '') + '</div><p class="n">' + esc(t.n) + '</p></div>'
 ).join('');
 
+/* ---------------- verdict ---------------- */
+{
+  const served = R.served === R.runs;
+  const j = DATA.judge;
+  el('verdict').innerHTML =
+    'The coach ' + (served ? 'returned a usable plan for every session' : 'served ' + R.served + ' of ' + R.runs + ' sessions') +
+    ', all of them accepted on the first attempt with no repair retry, so the repair loop and the ' +
+    'deterministic fallback were never exercised. ' +
+    (j ? 'An independent solver from a different provider family agreed with ' +
+      pct(j.llm.agreed / j.llm.total) + ' of ' + j.llm.total + ' generated answer keys, against ' +
+      pct(j.authoredControl.agreed / j.authoredControl.total) + ' on the human-authored control. ' : '') +
+    'Against the deterministic fallback it wins decisively where the fallback structurally cannot ' +
+    'compete — novel material (' + pct(L.novelStemRate.mean, 0) + ' of stems are new), diagnostic ' +
+    'distractor labels (' + pct(1 - L.genericMisconceptionRate.mean, 0) + ' specific rather than generic), ' +
+    'and questions that actually sit on the stated curriculum (' + pct(L.itemsOnCurriculum.mean, 0) +
+    ' against ' + (B ? pct(B.itemsOnCurriculum.mean, 0) : 'n/a') + '). It is beaten on concept ' +
+    'targeting, where the fallback scores 1.00 by copying the report’s own weak-concept list. ' +
+    'The costs are ' + num(R.latencySeconds.p50, 0) + 's median latency (p95 ' +
+    num(R.latencySeconds.p95, 0) + 's) and $' + R.costUsd.perServedPlan.toFixed(2) + ' per plan — ' +
+    'affordable between rounds, far too slow inside one.';
+}
+
 /* ---------------- bar helpers ---------------- */
 function barRow(label, series, max, fmt) {
-  const bars = series.map((s) =>
-    '<div class="bar"><span class="fill" style="width:' +
-    (max > 0 ? Math.max(0, (s.value / max) * 100) : 0) + '%;background:' + s.color + '"></span>' +
-    '<span class="bv">' + esc(fmt(s.value)) + '</span></div>'
-  ).join('');
+  const bars = series.map((s) => {
+    const w = max > 0 && Number.isFinite(s.value) ? Math.max(0, Math.min(100, (s.value / max) * 100)) : 0;
+    return '<div class="bar"><span class="track">' +
+      '<span class="fill" style="width:' + w + '%;background:' + s.color + '"></span></span>' +
+      '<span class="bv">' + esc(fmt(s.value)) + '</span></div>';
+  }).join('');
   return '<div class="row"><div class="rl">' + esc(label) + '</div><div class="bars">' + bars + '</div></div>';
 }
 
@@ -646,7 +755,6 @@ el('reliabilityNote').innerHTML = issueKinds.length
   : 'No attempt that reached the API was rejected by either validation stage.';
 
 /* ---------------- 5.2 quality ---------------- */
-const L = DATA.llm, B = DATA.local;
 const rateMetrics = [
   ['Target precision (fuzzy)', 'targetPrecisionFuzzy'],
   ['Target precision (strict)', 'targetPrecisionStrict'],
@@ -688,12 +796,18 @@ el('qualityNote').innerHTML =
 /* ---------------- 5.3 judge ---------------- */
 if (DATA.judge) {
   const J = DATA.judge;
+  // Marks are inset by half a dot width at each end so a value at 0% or 100%
+  // still sits fully inside the track, and the label right-aligns near the
+  // edges instead of hanging off it.
+  const PAD = 6;
+  const at = (v) => 'calc(' + (v * 100) + '% + ' + (PAD - v * 2 * PAD) + 'px)';
   const ciRow = (label, agreed, total, w, color) => {
     const p = agreed / total;
+    const shift = p > 0.88 ? '-100%' : p < 0.12 ? '0%' : '-50%';
     return '<div class="ci-row"><div class="rl">' + esc(label) + '</div><div class="ci-track">' +
-      '<span class="ci-band" style="left:' + (w[0] * 100) + '%;width:' + ((w[1] - w[0]) * 100) + '%;background:' + color + '"></span>' +
-      '<span class="ci-val" style="left:' + (p * 100) + '%">' + pct(p, 1) + '</span>' +
-      '<span class="ci-dot" style="left:' + (p * 100) + '%;background:' + color + '"></span>' +
+      '<span class="ci-band" style="left:' + at(w[0]) + ';right:' + at(1 - w[1]) + ';background:' + color + '"></span>' +
+      '<span class="ci-val" style="left:' + at(p) + ';transform:translate(' + shift + ',-160%)">' + pct(p, 1) + '</span>' +
+      '<span class="ci-dot" style="left:' + at(p) + ';background:' + color + '"></span>' +
       '</div></div>';
   };
   el('judgeCi').innerHTML =
@@ -727,21 +841,61 @@ if (DATA.judge) {
   el('judgeTable').outerHTML = '';
 }
 
+/* ---------------- 5.3.1 adjudication ---------------- */
+const D = DATA.disagreements || [];
+if (D.length) {
+  el('adjIntro').innerHTML =
+    'Small enough to check by hand, so here they all are — every item where the solver’s answer ' +
+    'differed from the plan’s key. The solver’s pick is marked <span class="pill crit">solver</span> ' +
+    'and the plan’s key <span class="pill good">key</span>. A further ' + DATA.concernOnlyCount +
+    ' items were answered correctly but still flagged with a concern.';
+  el('adjudication').innerHTML = D.map((d) =>
+    '<div class="block"><p class="block-title">' + esc(d.runId) + ' · item ' + d.sequence + ' · ' +
+    esc(d.difficulty) + ' · ' + esc(d.category) + ' · flagged <code>' + esc(d.concern) + '</code></p>' +
+    '<p style="font-family:var(--sans);font-size:.97rem;margin:0 0 .5rem">' + esc(d.question) + '</p>' +
+    '<div class="chart">' + d.answers.map((a, i) =>
+      '<div style="font-family:var(--mono);font-size:.76rem;color:var(--ink-2);display:flex;gap:.5rem;align-items:baseline">' +
+      '<span style="color:var(--ink-3);flex:none">' + i + '</span>' +
+      '<span style="flex:1">' + esc(a) + '</span>' +
+      (i === d.key ? '<span class="pill good">key</span>' : '') +
+      (i === d.choice ? '<span class="pill crit">solver</span>' : '') +
+      '</div>'
+    ).join('') + '</div></div>'
+  ).join('');
+  el('adjFinding').innerHTML =
+    'All ' + D.length + ' disagreements are the same defect, and the solver is right in every case. ' +
+    'Each is a negative-adverb inversion or a conditional whose stem supplies no tense or register ' +
+    'anchor, so two options are simultaneously correct: “Never before <em>had he</em> / <em>has he</em> ' +
+    'felt so confident” are both good English, and so are “<em>Should</em> you need help” and ' +
+    '“<em>If</em> you need help”. The model is not making grammar errors — it is writing items whose ' +
+    'stems under-determine the answer. That is a narrow, fixable prompt problem (require a time ' +
+    'reference in any inversion item), not a general quality problem, and it concentrates in the ' +
+    'hard and medium bands where inversions appear.';
+} else {
+  el('adjIntro').textContent = 'The solver agreed with the key on every generated item.';
+}
+
 /* ---------------- 5.4 positions ---------------- */
 const P = DATA.positions;
 const posMax = Math.max(...P.llm, ...P.local.filter(Number.isFinite), P.expected);
 el('positionMax').textContent = num(posMax, 1);
 el('positionChart').innerHTML = [0, 1, 2, 3].map((i) =>
-  barRow('Slot ' + i + (i === 3 ? ' (never shown)' : ''), [
+  barRow('Slot ' + i, [
     { value: P.llm[i], color: 'var(--series-llm)' },
     { value: P.local[i], color: 'var(--series-base)' },
   ], posMax, (x) => num(x, 1))
 ).join('');
 el('positionNote').innerHTML =
-  'The game shows three lanes, so an answer placed at slot 3 is never served — the prompt asks for ' +
-  'balance across all four positions, which is in tension with that. Mean questions per plan at each ' +
-  'slot, out of 30; a perfectly uniform plan would put ' + num(P.expected, 1) +
-  ' at each. Balanced-plan counts and the &chi;&sup2; statistic are in the table above.';
+  'Mean questions per plan whose correct answer sits at each authored slot, out of 30; a uniform plan ' +
+  'would put ' + num(P.expected, 1) + ' at each. The model is well balanced — ' +
+  L.positionBalancedPlans + '/' + L.plans + ' plans pass a &chi;&sup2; test against uniform, against ' +
+  (B ? B.positionBalancedPlans + '/' + B.plans : 'n/a') + ' for the fixed authored bank. ' +
+  '<strong>This matters less than it looks.</strong> The game has three lanes, not four, and ' +
+  '<code>QuestionManager.toLaneChoices</code> trims every item at serve time by keeping the correct ' +
+  'answer, dropping one random distractor, reshuffling the three, and recomputing the answer index. ' +
+  'A correct answer authored at slot 3 is therefore never lost — it is re-indexed — and positional ' +
+  'bias in the plan is neutralised before the player ever sees it. The measure is a signal about the ' +
+  'model’s own generation habits, not a gameplay defect.';
 
 /* ---------------- 5.5 language ---------------- */
 el('languageTable').innerHTML =
@@ -754,12 +908,23 @@ el('languageTable').innerHTML =
 
 const hits = (L.bannedTermHits || []).slice(0, 6);
 el('languageNote').innerHTML =
-  (L.plansWithBannedTerm === 0
-    ? 'No plan leaked internal or learning-science vocabulary into text the player reads. '
-    : L.plansWithBannedTerm + ' of ' + L.plans + ' plans leaked at least one banned term into player-facing text. ') +
-  (hits.length ? 'Examples: ' + hits.map((h) => '<code>' + esc(h.term) + '</code> in <code>' + esc(h.field) + '</code>').join(', ') + '. ' : '') +
   'The check runs on every string the player actually sees — feedback, curriculum titles, and each ' +
-  'question’s explanation and reason — matched as whole words.';
+  'question’s explanation and reason. ' +
+  (L.plansWithBannedTerm === 0
+    ? 'No plan leaked internal or learning-science vocabulary. '
+    : L.plansWithBannedTerm + ' of ' + L.plans + ' plans matched a banned term, and the matches need ' +
+      'reading before they are believed: ' +
+      hits.map((h) => '<code>' + esc(h.term) + '</code> in <code>' + esc(h.field) + '</code> — “…' +
+        esc(h.excerpt) + '…”').join('; ') + '. ') +
+  (L.plansWithBannedTerm > 0
+    ? 'That is the ordinary English verb <em>prompt</em> (“prompt the player to move faster”), not the ' +
+      'machine-learning noun the rule was written to catch. The checker matches whole words but not ' +
+      'word senses, so this is a <strong>false positive</strong> and the true leak rate for this run is ' +
+      '0 of ' + L.plans + '. It is a good argument for keeping the excerpt in the output rather than ' +
+      'just the count. '
+    : '') +
+  'Reading grade sits at ' + num(L.readingGrade.mean, 1) + ' against a target of about 6, so the ' +
+  'player-facing writing is roughly a year harder than intended — the one language result worth acting on.';
 
 /* ---------------- 5.6 novelty ---------------- */
 const N = DATA.novelty;
@@ -810,8 +975,10 @@ el('repro').textContent = [
   'EVAL_PHASE=baseline   npx vitest run eval/',
   'EVAL_PHASE=summarise  npx vitest run eval/',
   '',
-  '# render this document from results/summary.json',
-  'node eval/report.mjs',
+  '# render from results/summary.json — all three read the same measurements',
+  'node eval/report.mjs        # this page',
+  'node eval/report-pdf.mjs    # PDF (prints this page)',
+  'node eval/report-doc.mjs    # Word',
 ].join('\n');
 
 el('footer').textContent =

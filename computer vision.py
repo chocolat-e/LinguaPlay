@@ -27,21 +27,21 @@ PALM_ALPHA = 0.45           # steadier than the wrist: the guard is a held pose
 
 # Punch tuning: distance is normalized by shoulder width.
 READY_DISTANCE = 1.20       # B must first move outside the punch circle
-PUNCH_DISTANCE = 0.95       # circular punch-zone radius in shoulder widths
+PUNCH_DISTANCE = 0.80       # circular punch-zone radius in shoulder widths
 MIN_APPROACH_SPEED = 0.45   # normalized-distance decrease per second
 PUNCH_COOLDOWN_S = 0.65
 PUNCH_TEXT_DURATION_S = 0.45
 
 # Guard tuning: the palm brought back onto the chest, and held there.
 #
-# Tighter than the punch circle on purpose. A punch also finishes with the fist
-# crossing back over the chest — thrown at the camera, the arm foreshortens and
-# the wrist converges on A — so the two gestures can only be told apart by how
-# long the hand stays. GUARD_DWELL_S is that difference: a punch passes through
-# the circle in a few frames, a guard parks in it.
-GUARD_DISTANCE = 0.70       # circular guard-zone radius in shoulder widths
-GUARD_RELEASE_DISTANCE = 0.88   # leaving is wider than entering, so the edge
-                                # of the circle does not chatter the guard
+# Guard shares the punch circle instead of drawing its own: entering at
+# PUNCH_DISTANCE and releasing at READY_DISTANCE is the same ring the punch
+# detector already arms/fires against, so there is one zone on screen, not two.
+# A punch also finishes with the fist crossing back over the chest — thrown at
+# the camera, the arm foreshortens and the wrist converges on A — so the two
+# gestures can only be told apart by how long the hand stays. GUARD_DWELL_S is
+# that difference: a punch passes through the circle in a few frames, a guard
+# parks in it.
 GUARD_DWELL_S = 0.20        # how long the palm must stay inside before it counts
 
 # Hand direction: B must be this far from A before UP/DOWN/LEFT/RIGHT is shown.
@@ -147,12 +147,13 @@ class DistancePunchDetector:
 
 
 class PalmGuardDetector:
-    """Guard held while the palm sits inside a circle centred on the chest.
+    """Guard held while the palm sits inside the shared punch/guard circle.
 
-    The circle is the whole gesture — bring the hand back in and the guard is
-    up, push it away and the guard drops — with two guards against reading a
-    punch as a block: the dwell above, and a release radius wider than the
-    entry one so a palm resting on the boundary does not flicker.
+    Same ring the punch detector fires against (PUNCH_DISTANCE in, READY_DISTANCE
+    out) — bring the hand back in and the guard is up, push it away and the
+    guard drops — with two guards against reading a punch as a block: the
+    dwell below, and a release radius wider than the entry one so a palm
+    resting on the boundary does not flicker.
     """
 
     def __init__(self):
@@ -171,7 +172,7 @@ class PalmGuardDetector:
             self.reset()
             return False, False
 
-        limit = GUARD_RELEASE_DISTANCE if self.active else GUARD_DISTANCE
+        limit = READY_DISTANCE if self.active else PUNCH_DISTANCE
 
         if distance_norm > limit:
             self.inside_since = None
@@ -348,14 +349,15 @@ def draw_moving_chest_axes(frame, chest: np.ndarray):
 
 
 
-def draw_punch_circle(
+def draw_action_circle(
     frame,
     chest: np.ndarray,
     shoulder_width: float,
     wrist: Optional[np.ndarray],
+    palm: Optional[np.ndarray],
+    guard_active: bool,
 ):
-    """
-    Draw the circular PUNCH detection zone.
+    """Draw the one circle punch and guard both judge against.
 
     Circle center:
         A = chest
@@ -363,126 +365,59 @@ def draw_punch_circle(
     Circle radius:
         shoulder_width * PUNCH_DISTANCE
 
-    If B is inside the circle, it is inside the punch-detection region.
-    The actual PUNCH event still requires:
-        READY -> moving toward A -> entering this circle.
+    A PUNCH event needs READY -> moving toward A -> entering this circle. A
+    GUARD needs the palm inside this same circle, held for GUARD_DWELL_S. The
+    ring is filled while guard is up — the player has no view of the game
+    while looking at this window, so the block has to be legible from here.
     """
     h, w = frame.shape[:2]
 
     cx = int(round(float(chest[0])))
     cy = int(round(float(chest[1])))
 
-    radius = int(
-        round(
-            max(
-                10.0,
-                shoulder_width * PUNCH_DISTANCE,
-            )
-        )
-    )
-
-    # Clamp radius to avoid absurd drawing values.
-    radius = min(
-        radius,
-        max(w, h),
-    )
-
-    # Circle boundary.
-    cv2.circle(
-        frame,
-        (cx, cy),
-        radius,
-        (0, 165, 255),
-        2,
-        cv2.LINE_AA,
-    )
-
-    # Label.
-    label_y = max(
-        24,
-        cy - radius - 8,
-    )
-
-    cv2.putText(
-        frame,
-        "PUNCH ZONE",
-        (max(5, cx - 58), label_y),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.48,
-        (0, 165, 255),
-        2,
-        cv2.LINE_AA,
-    )
-
-    # Optional small indicator showing whether B is currently inside.
-    if wrist is not None:
-        distance_px = float(
-            np.linalg.norm(
-                wrist - chest
-            )
-        )
-
-        inside = (
-            distance_px <= radius
-        )
-
-        status = (
-            "B INSIDE"
-            if inside
-            else "B OUTSIDE"
-        )
-
-        cv2.putText(
-            frame,
-            status,
-            (
-                max(5, cx - 48),
-                min(h - 10, cy + radius + 22),
-            ),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.45,
-            (0, 165, 255),
-            2,
-            cv2.LINE_AA,
-        )
-
-
-def draw_guard_circle(
-    frame,
-    chest: np.ndarray,
-    shoulder_width: float,
-    palm: Optional[np.ndarray],
-    active: bool,
-):
-    """Draw the guard zone, and the palm the game is judging against it.
-
-    Drawn inside the punch circle it shares a centre with, and filled while the
-    guard is actually up: the player has no view of the game while they are
-    looking at this window, so the block has to be legible from here.
-    """
-    h, w = frame.shape[:2]
-    cx = int(round(float(chest[0])))
-    cy = int(round(float(chest[1])))
-
-    radius = int(round(max(10.0, shoulder_width * GUARD_DISTANCE)))
+    radius = int(round(max(10.0, shoulder_width * PUNCH_DISTANCE)))
     radius = min(radius, max(w, h))
 
-    color = (255, 200, 0) if active else (150, 110, 40)
+    color = (255, 200, 0) if guard_active else (0, 165, 255)
 
-    if active:
+    if guard_active:
         # A wash rather than a solid fill, so the landmarks under it stay visible.
         overlay = frame.copy()
         cv2.circle(overlay, (cx, cy), radius, color, -1, cv2.LINE_AA)
         cv2.addWeighted(overlay, 0.25, frame, 0.75, 0, frame)
 
     cv2.circle(frame, (cx, cy), radius, color, 2, cv2.LINE_AA)
-    cv2.putText(frame, "GUARD" if active else "guard zone",
-                (max(5, cx - 40), min(h - 6, cy + radius - 8)),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2, cv2.LINE_AA)
+
+    label_y = max(24, cy - radius - 8)
+    cv2.putText(
+        frame,
+        "GUARD" if guard_active else "PUNCH / GUARD ZONE",
+        (max(5, cx - 68), label_y),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.48,
+        color,
+        2,
+        cv2.LINE_AA,
+    )
+
+    # Optional small indicator showing whether B is currently inside.
+    if wrist is not None:
+        distance_px = float(np.linalg.norm(wrist - chest))
+        status = "B INSIDE" if distance_px <= radius else "B OUTSIDE"
+        cv2.putText(
+            frame,
+            status,
+            (max(5, cx - 48), min(h - 10, cy + radius + 22)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            color,
+            2,
+            cv2.LINE_AA,
+        )
 
     if palm is not None:
         px, py = int(round(float(palm[0]))), int(round(float(palm[1])))
-        cv2.circle(frame, (px, py), 7, color, -1 if active else 2, cv2.LINE_AA)
+        cv2.circle(frame, (px, py), 7, color, -1 if guard_active else 2, cv2.LINE_AA)
         cv2.putText(frame, "P", (px + 10, py + 5),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2, cv2.LINE_AA)
 
@@ -572,7 +507,7 @@ def draw_debug(frame, pose_ok, fist_ok, body_zone, direction, relative_xy,
         f"Punch state: {state}",
         # The guard is this script's own call, not the game's, so the number it
         # is thresholding has to be readable next to the circle it draws.
-        (f"Palm-A distance: {palm_distance:.2f} (guard <= {GUARD_DISTANCE:.2f})"
+        (f"Palm-A distance: {palm_distance:.2f} (guard <= {PUNCH_DISTANCE:.2f})"
          if palm_distance is not None else "Palm-A distance: --"),
         f"Guard: {guard_state} ({guard_count} raised)",
         # What the game actually receives, so a control that feels wrong can be
@@ -666,8 +601,8 @@ def main():
     print(f"READY distance >= {READY_DISTANCE:.2f}")
     print(f"PUNCH circle radius = {PUNCH_DISTANCE:.2f} shoulder widths")
     print(f"PUNCH text duration = {PUNCH_TEXT_DURATION_S:.2f} s")
-    print(f"GUARD circle radius = {GUARD_DISTANCE:.2f} shoulder widths, "
-          f"held {GUARD_DWELL_S:.2f} s")
+    print(f"GUARD shares the PUNCH circle (radius = {PUNCH_DISTANCE:.2f} "
+          f"shoulder widths), held {GUARD_DWELL_S:.2f} s")
     print("Hand direction = UP / DOWN / LEFT / RIGHT around moving chest origin")
     print(f"Bridge = {'disabled (--no-bridge)' if bridge is None else args.bridge}")
 
@@ -824,19 +759,11 @@ def main():
                     draw_moving_chest_axes(display, chest)
 
                     if shoulder_width is not None:
-                        draw_punch_circle(
+                        draw_action_circle(
                             display,
                             chest,
                             shoulder_width,
                             wrist,
-                        )
-
-                        # After the punch circle it sits inside, so the guard
-                        # ring and its fill are drawn over the larger one.
-                        draw_guard_circle(
-                            display,
-                            chest,
-                            shoulder_width,
                             palm,
                             guard_active,
                         )

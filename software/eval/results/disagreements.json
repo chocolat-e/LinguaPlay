@@ -1,0 +1,287 @@
+[
+  {
+    "source": "authored",
+    "runId": "AUTHORED-BANK",
+    "sequence": 27,
+    "question": "Which sentence is grammatically correct?",
+    "answers": [
+      "Neither of them were ready.",
+      "Neither of them was ready.",
+      "Neither of them are ready.",
+      "Neither of them be ready."
+    ],
+    "key": 1,
+    "choice": 1,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "hard",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R02-P1-cold-start",
+    "sequence": 8,
+    "question": "How do you welcome a guest who has just stepped inside your home?",
+    "answers": [
+      "Walk out!",
+      "Sit down!",
+      "Wait there!",
+      "Make yourself at home!"
+    ],
+    "key": 3,
+    "choice": 3,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "easy",
+    "category": "everyday"
+  },
+  {
+    "source": "llm",
+    "runId": "R02-P1-cold-start",
+    "sequence": 19,
+    "question": "Where would you normally buy a fresh loaf of bread?",
+    "answers": [
+      "Library",
+      "Pharmacy",
+      "Bakery",
+      "Market"
+    ],
+    "key": 2,
+    "choice": 2,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "medium",
+    "category": "everyday"
+  },
+  {
+    "source": "llm",
+    "runId": "R11-P3-grammar-gaps",
+    "sequence": 25,
+    "question": "What is a strong, academic synonym for a difficult or arduous task?",
+    "answers": [
+      "Hard",
+      "Gentle",
+      "Easy",
+      "Light"
+    ],
+    "key": 0,
+    "choice": 0,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "no-correct",
+    "difficulty": "hard",
+    "category": "synonym"
+  },
+  {
+    "source": "llm",
+    "runId": "R12-P3-grammar-gaps",
+    "sequence": 18,
+    "question": "Choose the right verb for 'we'. (We ___ to the park.)",
+    "answers": [
+      "walks",
+      "walk",
+      "walking",
+      "walked"
+    ],
+    "key": 1,
+    "choice": 1,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "medium",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R20-P5-motor-misses",
+    "sequence": 23,
+    "question": "___ you need help, please call me.",
+    "answers": [
+      "Should",
+      "If",
+      "Would",
+      "Had"
+    ],
+    "key": 0,
+    "choice": 1,
+    "agreed": false,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "hard",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R20-P5-motor-misses",
+    "sequence": 28,
+    "question": "Which word means 'Difficult to understand'?",
+    "answers": [
+      "Simple",
+      "Complex",
+      "Hard",
+      "Easy"
+    ],
+    "key": 1,
+    "choice": 1,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "hard",
+    "category": "synonym"
+  },
+  {
+    "source": "llm",
+    "runId": "R26-P7-returning-decayed",
+    "sequence": 7,
+    "question": "Complete the sentence about the letter: The letter...",
+    "answers": [
+      "is writing",
+      "writes",
+      "was written",
+      "will write"
+    ],
+    "key": 2,
+    "choice": 2,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "ambiguous-stem",
+    "difficulty": "easy",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R27-P7-returning-decayed",
+    "sequence": 14,
+    "question": "Choose the correct imaginary situation.",
+    "answers": [
+      "Had I time, I would read it.",
+      "Were I to have time, I would read it.",
+      "Have I time, I will read it.",
+      "Was I having time, I read it."
+    ],
+    "key": 1,
+    "choice": 0,
+    "agreed": false,
+    "confidence": "high",
+    "concern": "multiple-correct",
+    "difficulty": "medium",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R27-P7-returning-decayed",
+    "sequence": 16,
+    "question": "Never before ___ felt so confident.",
+    "answers": [
+      "he had",
+      "he has",
+      "had he",
+      "has he"
+    ],
+    "key": 2,
+    "choice": 3,
+    "agreed": false,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "medium",
+    "category": "sentence"
+  },
+  {
+    "source": "llm",
+    "runId": "R25-P7-returning-decayed",
+    "sequence": 5,
+    "question": "My friends and I ___ to the park.",
+    "answers": [
+      "walk",
+      "walks",
+      "walking",
+      "walked"
+    ],
+    "key": 0,
+    "choice": 0,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "easy",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R25-P7-returning-decayed",
+    "sequence": 7,
+    "question": "Welcoming a guest inside, you could tell them...",
+    "answers": [
+      "Sit down.",
+      "Wait outside.",
+      "Step right in.",
+      "Look away."
+    ],
+    "key": 2,
+    "choice": 2,
+    "agreed": true,
+    "confidence": "high",
+    "concern": "multiple-correct",
+    "difficulty": "easy",
+    "category": "everyday"
+  },
+  {
+    "source": "llm",
+    "runId": "R25-P7-returning-decayed",
+    "sequence": 12,
+    "question": "He was successful ___ passing the test.",
+    "answers": [
+      "at",
+      "with",
+      "for",
+      "in"
+    ],
+    "key": 3,
+    "choice": 3,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "medium",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R25-P7-returning-decayed",
+    "sequence": 18,
+    "question": "In the evening, we ___ dinner together.",
+    "answers": [
+      "cooks",
+      "cook",
+      "cooking",
+      "cooked"
+    ],
+    "key": 1,
+    "choice": 1,
+    "agreed": true,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "medium",
+    "category": "grammar"
+  },
+  {
+    "source": "llm",
+    "runId": "R25-P7-returning-decayed",
+    "sequence": 24,
+    "question": "Rarely ___ so happy to see someone.",
+    "answers": [
+      "he is",
+      "is he",
+      "he was",
+      "was he"
+    ],
+    "key": 3,
+    "choice": 1,
+    "agreed": false,
+    "confidence": "medium",
+    "concern": "multiple-correct",
+    "difficulty": "hard",
+    "category": "sentence"
+  }
+]

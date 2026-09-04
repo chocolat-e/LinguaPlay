@@ -65,6 +65,21 @@ export class InputManager {
   private listeners = new Set<PunchListener>();
   private guardListeners = new Set<GuardListener>();
   private enabled = true;
+  /**
+   * Whether a guard raised right now means anything. Closed by default.
+   *
+   * Blocking is only ever asked for during the monster's wind-up: the rest of
+   * the time the answer to a question is a punch, and a block is not a move
+   * the player has. Refusing it here rather than in `GameManager` matters
+   * because of where the guard comes from — the camera reads it off the *same*
+   * chest circle a punch is judged against, so a fist that lingers on its way
+   * back from a punch looks exactly like a guard. Left open, that phantom
+   * would not merely fire a stray sound: `raiseGuard` spends
+   * GUARD_ACTIVE_SECONDS + GUARD_COOLDOWN_SECONDS of lockout, so a block
+   * "raised" mid-question is still on cooldown when the real blow lands and
+   * the player eats a hit they defended against.
+   */
+  private guardWindow = false;
   /** Lane the pointer is hovering. Used for the hover highlight only. */
   private aimLane: number | null = null;
 
@@ -90,7 +105,7 @@ export class InputManager {
       this.motion.setReach(x, y);
     },
     guard: () => {
-      if (!this.enabled) return false;
+      if (!this.enabled || !this.guardWindow) return false;
       const raised = this.motion.raiseGuard();
       if (raised) for (const listener of this.guardListeners) listener(true);
       return raised;
@@ -163,6 +178,24 @@ export class InputManager {
       this.motion.setAxis(0, 0);
       this.motion.setReach(0, 0);
     }
+  }
+
+  /**
+   * Open or close the window in which a block can be raised.
+   *
+   * `GameManager` opens it when the monster starts winding up and closes it
+   * once the blow has resolved, so the whole of the rest of the fight is
+   * punching. Within the window the timing is still the player's to get right
+   * — the guard drops on its own after GUARD_ACTIVE_SECONDS, so opening this
+   * early in the charge is not a free block.
+   */
+  setGuardWindow(open: boolean): void {
+    this.guardWindow = open;
+  }
+
+  /** True while a block would be accepted. Drives the DEFEND prompt's meaning. */
+  get guardWindowOpen(): boolean {
+    return this.guardWindow;
   }
 
   /**

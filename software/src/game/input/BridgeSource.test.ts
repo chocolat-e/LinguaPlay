@@ -182,7 +182,19 @@ describe('BridgeReader guard', () => {
 });
 
 describe('BridgeReader interface controls', () => {
+  /** One packet, carrying the direction string the firmware actually sends. */
   const stick = (joy: string): BridgeSnapshot => snapshot({ controller: { online: true, joy } });
+
+  /**
+   * The same, addressed by the direction the player's thumb went.
+   *
+   * The stick's X pot is mounted backwards, so a push to the left arrives as
+   * `RIGHT`. Tests about *navigation* are written in these terms, because what
+   * matters is that the highlight follows the thumb; the two below that name
+   * raw directions are the ones checking the correction itself.
+   */
+  const push = (direction: string): BridgeSnapshot =>
+    stick({ LEFT: 'RIGHT', RIGHT: 'LEFT' }[direction] ?? direction);
 
   it('steps the focus once per flick, not once per poll', () => {
     const reader = new BridgeReader();
@@ -208,15 +220,28 @@ describe('BridgeReader interface controls', () => {
 
   it('reads up and left as back, down and right as forward', () => {
     const reader = new BridgeReader();
-    reader.read(stick('CENTER'), 0);
+    reader.read(push('CENTER'), 0);
 
     // One stick, two menu axes: which way a list runs is not something the
     // player should have to remember while holding it.
-    expect(reader.read(stick('UP'), 100).ui.step).toBe(-1);
-    expect(reader.read(stick('LEFT'), 200).ui.step).toBe(-1);
-    expect(reader.read(stick('DOWN'), 300).ui.step).toBe(1);
-    expect(reader.read(stick('RIGHT'), 400).ui.step).toBe(1);
-    expect(reader.read(stick('CENTER'), 500).ui.step).toBe(0);
+    expect(reader.read(push('UP'), 100).ui.step).toBe(-1);
+    expect(reader.read(push('LEFT'), 200).ui.step).toBe(-1);
+    expect(reader.read(push('DOWN'), 300).ui.step).toBe(1);
+    expect(reader.read(push('RIGHT'), 400).ui.step).toBe(1);
+    expect(reader.read(push('CENTER'), 500).ui.step).toBe(0);
+  });
+
+  it('turns the backwards X axis round, and leaves Y alone', () => {
+    const reader = new BridgeReader();
+    reader.read(stick('CENTER'), 0);
+
+    // The packet says RIGHT because the pot is mounted the other way about;
+    // the thumb went left, so the highlight goes back up the list.
+    expect(reader.read(stick('RIGHT'), 100).ui.step).toBe(-1);
+    expect(reader.read(stick('LEFT'), 200).ui.step).toBe(1);
+    // Y comes off the other pot and was never inverted.
+    expect(reader.read(stick('UP'), 300).ui.step).toBe(-1);
+    expect(reader.read(stick('DOWN'), 400).ui.step).toBe(1);
   });
 
   it('presses once per press of the button', () => {
@@ -232,15 +257,15 @@ describe('BridgeReader interface controls', () => {
 
   it('re-arms a stick still held when the controller comes back', () => {
     const reader = new BridgeReader();
-    reader.read(stick('CENTER'), 0);
-    reader.read(stick('LEFT'), 100);
+    reader.read(push('CENTER'), 0);
+    reader.read(push('LEFT'), 100);
     reader.read(snapshot({ controller: { online: false } }), 200);
 
     // Still held in the same direction after the dropout: a hand that never
     // moved must not read as a fresh flick of the stick.
-    expect(reader.read(stick('LEFT'), 300).ui.step).toBe(0);
-    reader.read(stick('CENTER'), 400);
-    expect(reader.read(stick('LEFT'), 500).ui.step).toBe(-1);
+    expect(reader.read(push('LEFT'), 300).ui.step).toBe(0);
+    reader.read(push('CENTER'), 400);
+    expect(reader.read(push('LEFT'), 500).ui.step).toBe(-1);
   });
 
   it('asks for nothing from a controller that is not there', () => {
@@ -290,8 +315,9 @@ describe('BridgeReader channel ownership', () => {
     const blind = reader.read(snapshot({ controller: { online: true, joy: 'RIGHT' } }), 200);
     expect(blind.reach).toBeNull();
     expect(blind.guard).toBe(false);
-    // It moved the menu instead, which is all it is allowed to move.
-    expect(blind.ui.step).toBe(1);
+    // It moved the menu instead, which is all it is allowed to move. Back up
+    // the list, because a packet saying RIGHT is a thumb that went left.
+    expect(blind.ui.step).toBe(-1);
   });
 
   it('asks for nothing at all when no device is connected', () => {
